@@ -24,8 +24,8 @@
   "postAttachCommand": "printf '\\n\\033[1;36mtt-sim lab ready (FULL: tt-metal prebuilt).\\033[0m tt-metal is already built at /opt/tt-metal \\u2014 skip tt-sim setup; just: ttlab 00, then ttlab 01\\n\\n' && ttlab list",
 
   "hostRequirements": {
-    "cpus": 8,
-    "memory": "16gb",
-    "storage": "128gb"
+    "cpus": 4,
+    "memory": "8gb",
+    "storage": "32gb"
   }
 }
