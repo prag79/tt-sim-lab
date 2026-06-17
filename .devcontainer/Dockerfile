@@ -47,7 +47,8 @@ RUN mkdir -p "${TTSIM_DIR}" && cd "${TTSIM_DIR}" && \
     done
 
 # Non-root user with sudo (matches devcontainer.json's remoteUser).
-RUN useradd -m -s /bin/bash -G sudo,kvm student && \
+RUN groupadd -f kvm && \
+    useradd -m -s /bin/bash -G sudo,kvm student && \
     echo "student ALL=(ALL) NOPASSWD:ALL" >/etc/sudoers.d/student && \
     mkdir -p /home/student/work && chown -R student:student /home/student
 
