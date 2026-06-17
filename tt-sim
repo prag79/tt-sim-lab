@@ -143,6 +143,7 @@ cmd_env() {
   [[ -n "$home" ]] || die "no tt-metal tree found; run 'tt-sim setup' first"
   cat <<EOF
 export TT_METAL_HOME="$home"
+export TT_METAL_RUNTIME_ROOT="$home"
 export TT_METAL_SIMULATOR="$WH_LIB"
 export TT_METAL_SLOW_DISPATCH_MODE=1
 export TT_METAL_DISABLE_SFPLOADMACRO=1
@@ -156,6 +157,7 @@ cmd_run() {
 
   wire_soc_descriptor "$home"
   export TT_METAL_HOME="$home"
+  export TT_METAL_RUNTIME_ROOT="$home"
   export TT_METAL_SIMULATOR="$WH_LIB"
   export TT_METAL_SLOW_DISPATCH_MODE=1
   export TT_METAL_DISABLE_SFPLOADMACRO=1
@@ -179,6 +181,7 @@ cmd_shell() {
   wire_soc_descriptor "$home"
   echo "==> Shell with library-direct ttsim env exported. Type 'exit' to leave."
   TT_METAL_HOME="$home" \
+  TT_METAL_RUNTIME_ROOT="$home" \
   TT_METAL_SIMULATOR="$WH_LIB" \
   TT_METAL_SLOW_DISPATCH_MODE=1 \
   TT_METAL_DISABLE_SFPLOADMACRO=1 \
