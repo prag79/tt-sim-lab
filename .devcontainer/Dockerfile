@@ -12,7 +12,7 @@ ENV DEBIAN_FRONTEND=noninteractive \
 # the next "line" then runs as a separate shell command.
 RUN apt-get update && apt-get install -y --no-install-recommends \
         build-essential git ninja-build meson pkg-config python3 python3-venv \
-        libglib2.0-dev libpixman-1-dev libslirp-dev libgmodule-2.0-0 \
+        libglib2.0-dev libpixman-1-dev libslirp-dev \
         zlib1g-dev libfdt-dev flex bison \
         cloud-image-utils genisoimage qemu-utils \
         wget curl ca-certificates sudo nano less file unzip xz-utils \
