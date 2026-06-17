@@ -11,7 +11,8 @@ ENV DEBIAN_FRONTEND=noninteractive \
 # A `#` consumes the trailing `\` and silently breaks line continuation;
 # the next "line" then runs as a separate shell command.
 RUN apt-get update && apt-get install -y --no-install-recommends \
-        build-essential git ninja-build meson pkg-config python3 python3-venv \
+        build-essential git ninja-build meson pkg-config \
+        python3 python3-venv python3-pip python3-tomli python3-setuptools \
         libglib2.0-dev libpixman-1-dev libslirp-dev \
         zlib1g-dev libfdt-dev flex bison \
         cloud-image-utils genisoimage qemu-utils \
