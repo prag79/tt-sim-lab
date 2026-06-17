@@ -72,8 +72,23 @@ is_built() {
 wire_soc_descriptor() {
   local home="$1"
   local desc="$home/tt_metal/soc_descriptors/wormhole_b0_80_arch.yaml"
+  local dest="$TTSIM_DIR/soc_descriptor.yaml"
   [[ -f "$desc" ]] || die "soc descriptor not found at $desc (is tt-metal checked out?)"
-  cp -f "$desc" "$TTSIM_DIR/soc_descriptor.yaml"
+
+  # Already wired up and identical? Nothing to do. This is the common case on
+  # the :full image, where the descriptor is baked in (root-owned) at build
+  # time — re-copying it would fail with "Permission denied".
+  if [[ -f "$dest" ]] && cmp -s "$desc" "$dest"; then
+    return 0
+  fi
+
+  # Needs (re)writing. Use a plain copy when /opt/ttsim is writable, else fall
+  # back to sudo (the lab image grants the student NOPASSWD sudo).
+  if [[ -w "$TTSIM_DIR" && ( ! -e "$dest" || -w "$dest" ) ]]; then
+    cp -f "$desc" "$dest"
+  else
+    sudo cp -f "$desc" "$dest"
+  fi
 }
 
 # --- subcommands -----------------------------------------------------------
