@@ -33,8 +33,13 @@ RISC-V/compute engines with results **bit-exact to silicon**.
 
 ## One-time setup (build tt-metal against the virtual chip)
 
-The first time you run any kernel lab, provision tt-metal and wire it to the
-virtual Wormhole. This is idempotent — later labs reuse it.
+> **Using the `:full` prebuilt image?** tt-metal is already compiled at
+> `/opt/tt-metal` — **skip this section entirely** and jump straight to
+> [Run it](#run-it).
+
+The first time you run any kernel lab on the **light (`:latest`) image**,
+provision tt-metal and wire it to the virtual Wormhole. This is idempotent —
+later labs reuse it.
 
 ```bash
 tt-sim setup
@@ -49,10 +54,10 @@ tt-sim setup
    library-direct flow can enumerate the device.
 
 > **Resource note.** *Building* tt-metal is large (tens of GB, long compile).
-> *Running* it under the simulator afterward is light. If your image already
-> ships a prebuilt tt-metal (`tt-sim status` shows "built"), `setup` is
-> instant. On a fresh free Codespace the first build is the slow part, not
-> the lab itself.
+> *Running* it under the simulator afterward is light. On a fresh free
+> Codespace the first build is the slow part, not the lab itself. Not sure
+> which image you have? Run `tt-sim status` — if it shows "built", setup is
+> already done.
 
 ## Run it
 

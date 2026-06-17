@@ -52,8 +52,12 @@ device) and reports it as informational — you don't need it for labs 01–03.
 
 ## Provision tt-metal (one time)
 
-The kernel labs need a built tt-metal. Do this once; it persists across
-Codespace stop/start:
+> **Using the `:full` prebuilt image?** tt-metal is already compiled at
+> `/opt/tt-metal` — `tt-sim status` already reports "built", so you can
+> **skip this step** and go straight to `ttlab 01`.
+
+On the **light (`:latest`) image**, the kernel labs need a built tt-metal. Do
+this once; it persists across Codespace stop/start:
 
 ```bash
 tt-sim setup        # locate/clone + build tt-metal, wire up the soc descriptor

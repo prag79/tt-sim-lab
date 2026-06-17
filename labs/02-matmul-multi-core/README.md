@@ -29,7 +29,9 @@ fast.
 
 ## Run it
 
-If you have not provisioned tt-metal yet, do it once (see Lab 01):
+On the **light (`:latest`) image**, if you have not provisioned tt-metal yet,
+do it once (see Lab 01). On the **`:full` prebuilt image** tt-metal is already
+built — skip this:
 
 ```bash
 tt-sim setup

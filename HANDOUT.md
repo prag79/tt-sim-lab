@@ -131,8 +131,12 @@ QEMU tooling). If a primary-track line is red, see §5.
 
 ### 2.4 Provision tt-metal, then run your first kernel
 
-The kernel labs need a built tt-metal. Do this **once** (it persists across
-Codespace stop/start):
+> **On the `:full` image?** tt-metal is already prebuilt at `/opt/tt-metal`
+> (`tt-sim status` reports "built") — **skip this step** and go straight to
+> `ttlab 01`.
+
+On the **light (`:latest`) image**, the kernel labs need a built tt-metal. Do
+this **once** (it persists across Codespace stop/start):
 
 ```bash
 tt-sim setup        # locate/clone + build tt-metal, wire up the virtual chip
