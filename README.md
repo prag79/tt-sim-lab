@@ -185,16 +185,19 @@ not on every push:
 
 ```bash
 # From the Actions tab, run "Build & push FULL lab image", or:
-gh workflow run build-full.yml -f runner=ubuntu-latest-16-cores -f tag=full
+gh workflow run build-full.yml -f tag=full           # uses a self-hosted runner
 # tt_metal_ref defaults to the pinned PR #46871 merge commit; override to
 # track main:  -f tt_metal_ref=main
+# Use a GitHub larger runner instead:  -f runner=ubuntu-latest-16-cores
 ```
 
-`build-full.yml` reclaims ~30 GB of runner disk first, then builds with
-`--build-arg PREBUILD_TT_METAL=1`. **`ubuntu-latest` is tight** for a full
-tt-metal build; prefer a [larger GitHub-hosted runner](https://docs.github.com/en/actions/using-github-hosted-runners/about-larger-runners)
-you've configured (e.g. `ubuntu-latest-16-cores`, which has far more disk),
-or a self-hosted runner. Pass its label via the `runner` input.
+`build-full.yml` builds with `--build-arg PREBUILD_TT_METAL=1`. It defaults
+to a **self-hosted runner** (`runner: self-hosted`) — the machine needs
+Docker and ~150 GB free disk; the tt-metal compile runs *inside* the build
+container, so no host toolchain is required. Register one via the repo's
+**Settings → Actions → Runners → New self-hosted runner**. (GitHub-hosted
+larger runners are an alternative but require an Org on a Team/Enterprise
+plan; pass e.g. `-f runner=ubuntu-latest-16-cores` if you have one.)
 
 Students then create their Codespace from the **FULL** devcontainer config
 (the create-codespace screen lists both) and skip `tt-sim setup`.
