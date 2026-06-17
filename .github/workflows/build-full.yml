@@ -1,0 +1,74 @@
+name: Build & push FULL lab image (tt-metal prebuilt)
+
+# Heavy variant of the lab image: in addition to the QEMU fork + libttsim,
+# it BUILDS tt-metal at image-build time (PREBUILD_TT_METAL=1) and bakes it
+# into /opt/tt-metal, so students get a zero-setup "tt-metal already built"
+# Codespace (the primary kernel-programming track needs no `tt-sim setup`).
+#
+# This is NOT run on every push. Building tt-metal is large (tens of GB of
+# disk, a long compile) and the resulting image is multi-GB. Run it manually,
+# ideally on a larger runner with ample disk. The light image (build.yml ->
+# :latest) remains the default for free Codespaces.
+#
+# Output tag:  ghcr.io/<owner>/tt-sim-lab:full
+
+on:
+  workflow_dispatch:
+    inputs:
+      runner:
+        description: >-
+          Runner label. ubuntu-latest (~14 GB free after cleanup ~45 GB) is
+          tight for tt-metal; prefer a larger GitHub-hosted runner you have
+          configured (e.g. ubuntu-latest-16-cores) or a self-hosted runner.
+        type: string
+        default: ubuntu-latest
+      tt_metal_ref:
+        description: tt-metal git ref to build (must include PR #46871 for Wormhole)
+        type: string
+        default: main
+      tag:
+        description: Image tag to push
+        type: string
+        default: full
+
+jobs:
+  build-full:
+    runs-on: ${{ inputs.runner }}
+    timeout-minutes: 600
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v5
+
+      # Reclaim ~30 GB on GitHub-hosted runners by deleting preinstalled
+      # toolchains the build does not need. Harmless on self-hosted runners.
+      - name: Free up disk space
+        run: |
+          echo "Before cleanup:"; df -h /
+          sudo rm -rf /usr/share/dotnet /opt/ghc /usr/local/.ghcup \
+                      /usr/local/lib/android /usr/local/share/boost \
+                      "${AGENT_TOOLSDIRECTORY:-/opt/hostedtoolcache}" || true
+          sudo docker image prune -af || true
+          echo "After cleanup:"; df -h /
+
+      - uses: docker/setup-buildx-action@v3
+
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: .devcontainer/Dockerfile
+          push: true
+          build-args: |
+            PREBUILD_TT_METAL=1
+            TT_METAL_REF=${{ inputs.tt_metal_ref }}
+          tags: |
+            ghcr.io/${{ github.repository_owner }}/tt-sim-lab:${{ inputs.tag }}
+          # No gha cache here: the tt-metal build layer is huge and would blow
+          # the 10 GB Actions cache limit. Rely on a fresh build each run.

@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Lab 07 - fetch and tour the single QEMU patch that adds the ttsim device.
+# Lab 16 - fetch and tour the single QEMU patch that adds the ttsim device.
 # Downloads the two fork-specific files into the working copy so you can read
 # them locally, then highlights the key call sites.
 

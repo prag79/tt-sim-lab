@@ -1,8 +1,10 @@
-# ttsim-qemu Lab
+# tt-sim Lab — kernel programming on a virtual Tenstorrent chip
 
-Boot Linux, load the Tenstorrent driver, see `/dev/tenstorrent/0`, and
-run AI-accelerator software against a **virtual** Tenstorrent chip — all
-in your browser, no silicon and nothing installed on your laptop.
+Learn **TT-Metalium kernel programming** — write and run matrix-multiplication
+kernels on a virtual Tenstorrent Wormhole — all in your browser, with **no
+silicon and nothing installed on your laptop**. An optional advanced track
+also covers the full bring-up story (boot Linux, load the real driver, see
+`/dev/tenstorrent/0`).
 
 [![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)](https://codespaces.new/prag79/tt-sim-lab?quickstart=1)
 
@@ -18,13 +20,19 @@ the same Codespace afterwards is instant.
 
 [ttsim](https://github.com/tenstorrent/ttsim) is a fast full-system
 simulator of Tenstorrent AI hardware: a virtual Wormhole, Blackhole, or
-Quasar packaged as a single `libttsim.so`.
-[ttsim-qemu](https://github.com/tenstorrent/ttsim-qemu) is a one-patch
-fork of QEMU that exposes that library to a guest VM as a **PCIe
-device**. The result is a 100% open-source, full-system environment that
-behaves like a real Tenstorrent card:
+Quasar packaged as a single `libttsim.so`, with results **bit-exact to
+silicon**. This lab uses it to teach
+[TT-Metalium](https://github.com/tenstorrent/tt-metal) kernel programming.
+
+There are two ways to drive the virtual chip, and this repo has a track for
+each:
 
 ```
+  Primary (kernel programming, library-direct):
+        your tt-metal program  ──TT_METAL_SIMULATOR──►  libttsim_wh.so
+        (host + reader/compute/writer kernels)          (the virtual chip)
+
+  Advanced (bring-up, optional):
         guest Linux + tt-kmd + tt-metal
                      │  PCIe (BAR MMIO, config space, DMA)
         ┌────────────▼─────────────┐
@@ -33,10 +41,13 @@ behaves like a real Tenstorrent card:
         └──────────────────────────┘   (the virtual chip)
 ```
 
-You can boot Linux, load the [KMD](https://github.com/tenstorrent/tt-kmd),
-see `/dev/tenstorrent/0`, and run full
-[tt-metal](https://github.com/tenstorrent/tt-metal) applications — just
-as if you had real silicon — backed by `libttsim.so`.
+The **primary track** points tt-metal straight at `libttsim_wh.so` — no
+QEMU, no driver, no guest — so you can focus on writing and running kernels.
+The **advanced track** uses [ttsim-qemu](https://github.com/tenstorrent/ttsim-qemu),
+a one-patch fork of QEMU that exposes the library to a guest VM as a real
+**PCIe device**, so you can boot Linux, load the
+[KMD](https://github.com/tenstorrent/tt-kmd), see `/dev/tenstorrent/0`, and
+run tt-metal through the full silicon-faithful path.
 
 ## What you get
 
@@ -44,50 +55,75 @@ as if you had real silicon — backed by `libttsim.so`.
   `qemu-system-aarch64`, both with the `ttsim` PCI device compiled in.
 - Prebuilt **`libttsim_wh.so` and `libttsim_bh.so`** (Wormhole +
   Blackhole, x86_64 and aarch64) under `/opt/ttsim`.
-- An **Ubuntu 22.04 guest** booted on demand with user-mode networking,
-  so it can `apt install` kernel headers and `git clone` tt-kmd exactly
-  per the upstream instructions.
-- Eight exercises under `/labs/` (read-only). On first run, `ttlab NN`
+- An **Ubuntu 22.04 guest** (advanced track) booted on demand with
+  user-mode networking, so it can `apt install` kernel headers and
+  `git clone` tt-kmd exactly per the upstream instructions.
+- Lab exercises under `/labs/` (read-only). On first run, `ttlab NN`
   mirrors the lab into your editable `~/work/<lab-name>/` and runs it.
+
+## Two tracks
+
+| Track | Backend | Helper | What it's for | Labs |
+|---|---|---|---|---|
+| **Primary — kernel programming** | **library-direct** (`TT_METAL_SIMULATOR` → `libttsim_wh.so`) | `tt-sim` | Write/run tt-metal matmul kernels on a virtual Wormhole. No QEMU, no driver, no guest VM — light and fast. | **00–03** |
+| Advanced — bring-up (optional) | QEMU + `tt-kmd` | `tt-guest` | See how the chip appears to a real OS as a PCIe device; load the real driver; run tt-metal through the full PCIe path. | 10–16 |
+
+Most students only need the **primary track**. Start there; dip into the
+advanced track if you care about the driver/PCIe layer itself.
 
 ## Quick start (in the Codespace terminal)
 
 ```bash
 ttlab list              # see available exercises
-ttlab 00                # orientation: verify QEMU + ttsim device + libttsim.so
-ttlab 01                # boot a Linux guest (no device yet)
-ttlab 02                # attach a virtual Wormhole; find it with lspci
-ttlab 03                # build & load tt-kmd; get /dev/tenstorrent/0
-ttlab 04                # inspect the device (sysfs, BARs, config space)
-ttlab 05                # run a tt-metal app on virtual Wormhole (advanced)
-ttlab 06                # Blackhole + a look at multichip
-ttlab 07                # read the one QEMU patch (hw/misc/ttsim.c)
+ttlab 00                # orientation: verify env + provision tt-metal
+tt-sim setup            # one-time: clone/build tt-metal, wire up the virtual chip
+ttlab 01                # single-core matrix multiplication
+ttlab 02                # multi-core matrix multiplication (SPMD across the grid)
+ttlab 03                # multicast for data reuse in multi-core matmul
+
+# Run a lab's program on the virtual Wormhole:
+tt-sim run metal_example_matmul_single_core
+
+# --- optional advanced (QEMU + driver) track ---
+ttlab 10                # boot a Linux guest (no device yet)
+ttlab 14                # run tt-metal through the full QEMU + driver path
 ttlab ssh               # ssh into the running guest (second terminal)
 ttlab stop              # power off the guest
 ```
 
-The usual rhythm: run `ttlab NN` in one terminal (it boots the guest on
-the serial console), then open a **second** terminal and `ttlab ssh` in
-to do interactive work.
+Primary-track rhythm: `tt-sim setup` once, then `tt-sim run <example>` to
+execute kernels — no guest, no SSH. Advanced-track rhythm: run `ttlab 1N`
+in one terminal (it boots the guest on the serial console), then open a
+**second** terminal and `ttlab ssh` in to work interactively.
 
 ## Exercises
 
-| Lab | What it teaches | Runs in a free Codespace? | Source |
-|---|---|:---:|---|
-| `ttlab 00` | The three components (QEMU fork, `ttsim` device, `libttsim.so`) and how they connect | yes | [`labs/00-orientation/`](labs/00-orientation/) |
-| `ttlab 01` | Full-system QEMU: boot a complete Linux guest with a PCIe bus | yes | [`labs/01-boot-guest/`](labs/01-boot-guest/) |
-| `ttlab 02` | Attach a virtual Wormhole with one `-device` flag; read its PCI identity & BARs | yes | [`labs/02-attach-ttsim/`](labs/02-attach-ttsim/) |
-| `ttlab 03` | Build & load the **stock** `tt-kmd`; surface `/dev/tenstorrent/0` | yes | [`labs/03-load-kmd/`](labs/03-load-kmd/) |
-| `ttlab 04` | Inspect the device via `/sys`, BARs, and config space — bring-up debugging skills | yes | [`labs/04-inspect-device/`](labs/04-inspect-device/) |
-| `ttlab 05` | Run a real tt-metal program on virtual Wormhole (no `TT_METAL_SIMULATOR` — it's the KMD path) | needs a bigger host | [`labs/05-tt-metal-wormhole/`](labs/05-tt-metal-wormhole/) |
-| `ttlab 06` | Blackhole bring-up (32 GB BAR4) + multichip preview (N300/P300/T3000/Galaxy) | KMD: yes | [`labs/06-blackhole-multichip/`](labs/06-blackhole-multichip/) |
-| `ttlab 07` | Read the single patch: how `hw/misc/ttsim.c` turns a `.so` into a PCIe chip | yes | [`labs/07-the-qemu-patch/`](labs/07-the-qemu-patch/) |
+### Primary track — kernel programming (library-direct ttsim)
 
-Labs are ordered by difficulty. 00 is a 5-minute sanity check; 01–04
-build the full boot → driver → device-inspection path that runs
-comfortably in a free Codespace; 05 is the heavyweight tt-metal capstone
-(best on a larger machine); 06 covers Blackhole and the multichip
-roadmap; 07 reads the source that makes it all work.
+| Lab | What it teaches | Source |
+|---|---|---|
+| `ttlab 00` | Orientation: verify the env; provision tt-metal with `tt-sim setup` | [`labs/00-orientation/`](labs/00-orientation/) |
+| `ttlab 01` | Single-core matmul: tiles, reader/compute/writer kernels, circular buffers, the matmul FPU API | [`labs/01-matmul-single-core/`](labs/01-matmul-single-core/) |
+| `ttlab 02` | Multi-core matmul: SPMD work-splitting across the Tensix grid, per-core runtime args | [`labs/02-matmul-multi-core/`](labs/02-matmul-multi-core/) |
+| `ttlab 03` | Multicast: NoC data reuse to kill redundant DRAM reads in multi-core matmul | [`labs/03-matmul-multicast/`](labs/03-matmul-multicast/) |
+
+These mirror the upstream
+[TT-Metalium matmul labs](https://github.com/tenstorrent/tt-metal/tree/main/docs/source/tt-metalium/tt_metal/labs/matmul).
+Building tt-metal is the one heavy step; running the kernels afterward is
+light. Wormhole needs [tt-metal PR #46871](https://github.com/tenstorrent/tt-metal/pull/46871),
+which `tt-sim` pulls in.
+
+### Advanced track — QEMU + tt-kmd bring-up (optional)
+
+| Lab | What it teaches | Source |
+|---|---|---|
+| `ttlab 10` | Full-system QEMU: boot a complete Linux guest with a PCIe bus | [`labs/10-boot-guest/`](labs/10-boot-guest/) |
+| `ttlab 11` | Attach a virtual Wormhole with one `-device` flag; read its PCI identity & BARs | [`labs/11-attach-ttsim/`](labs/11-attach-ttsim/) |
+| `ttlab 12` | Build & load the **stock** `tt-kmd`; surface `/dev/tenstorrent/0` | [`labs/12-load-kmd/`](labs/12-load-kmd/) |
+| `ttlab 13` | Inspect the device via `/sys`, BARs, and config space | [`labs/13-inspect-device/`](labs/13-inspect-device/) |
+| `ttlab 14` | Run tt-metal through the full QEMU + driver path (no `TT_METAL_SIMULATOR`) | [`labs/14-tt-metal-qemu/`](labs/14-tt-metal-qemu/) |
+| `ttlab 15` | Blackhole bring-up (32 GB BAR4) + multichip preview (N300/P300/T3000/Galaxy) | [`labs/15-blackhole-multichip/`](labs/15-blackhole-multichip/) |
+| `ttlab 16` | Read the single patch: how `hw/misc/ttsim.c` turns a `.so` into a PCIe chip | [`labs/16-the-qemu-patch/`](labs/16-the-qemu-patch/) |
 
 ### Where your editable copy of each lab lives
 
@@ -126,15 +162,78 @@ You (this repo)  →  GitHub Actions  →  GHCR  →  Codespaces VM  →  Your b
   `libttsim`, ~10 min) and pushes it to `ghcr.io/prag79/tt-sim-lab:latest`.
 - A student clicks the badge; Codespaces boots a VM, pulls the image,
   attaches VS Code in the browser.
-- Labs boot a guest via QEMU using the prebuilt `qemu-system-*` and
-  `/opt/ttsim/libttsim_*.so`.
+- Primary-track labs run tt-metal against `/opt/ttsim/libttsim_wh.so`
+  via the library-direct flow (the `tt-sim` helper); advanced-track labs
+  boot a guest via QEMU using the prebuilt `qemu-system-*` and the same
+  `libttsim_*.so`.
+
+## Two images: light (`:latest`) vs. full (`:full`)
+
+| | `:latest` (light) | `:full` (prebuilt) |
+|---|---|---|
+| Built by | `build.yml` (on every push) | `build-full.yml` (manual) |
+| Contains | QEMU fork + `libttsim` | …**plus tt-metal prebuilt** at `/opt/tt-metal` |
+| First-run setup | `tt-sim setup` builds tt-metal (slow, once) | none — already built |
+| Image size | small | large (multi-GB) |
+| Devcontainer | `.devcontainer/devcontainer.json` | `.devcontainer/full/devcontainer.json` |
+| Good for | free Codespaces | "zero-setup" classes on bigger machines |
+
+### Building the full image
+
+The full build bakes tt-metal in, which is heavy — so it runs **manually**,
+not on every push:
+
+```bash
+# From the Actions tab, run "Build & push FULL lab image", or:
+gh workflow run build-full.yml \
+  -f runner=ubuntu-latest-16-cores \
+  -f tt_metal_ref=main \
+  -f tag=full
+```
+
+`build-full.yml` reclaims ~30 GB of runner disk first, then builds with
+`--build-arg PREBUILD_TT_METAL=1`. **`ubuntu-latest` is tight** for a full
+tt-metal build; prefer a [larger GitHub-hosted runner](https://docs.github.com/en/actions/using-github-hosted-runners/about-larger-runners)
+you've configured (e.g. `ubuntu-latest-16-cores`, which has far more disk),
+or a self-hosted runner. Pass its label via the `runner` input.
+
+Students then create their Codespace from the **FULL** devcontainer config
+(the create-codespace screen lists both) and skip `tt-sim setup`.
+
+## Bigger Codespace machines (more RAM / disk)
+
+A Codespace's RAM **and disk** are set by the **machine type** chosen when it
+is created — `hostRequirements` in `devcontainer.json` only sets the
+*minimum*. Typical GitHub options:
+
+| Machine | RAM | Storage |
+|---|---|---|
+| 2-core | 8 GB | 32 GB |
+| 4-core | 16 GB | 32 GB |
+| 8-core | 32 GB | 64 GB |
+| 16-core | 64 GB | 128 GB |
+| 32-core | 128 GB | 256 GB |
+
+To get more space:
+
+1. **Pick a larger machine type** on the "Create codespace" screen
+   (use **⋯ → New with options…** from the repo's Code dropdown), or raise
+   `hostRequirements` so Codespaces won't offer anything smaller. The light
+   config asks for 4-core/8 GB/64 GB; the full config asks for
+   8-core/16 GB/128 GB.
+2. **Enable the bigger types if they're greyed out.** Larger machine types
+   must be permitted by the account/org: GitHub → Settings → Codespaces →
+   *Machine types* (org), and they require a billing/spending limit > $0.
+3. **Mind the quota.** Bigger machines burn the 120 free core-hours faster
+   (a 16-core machine is 4× a 4-core), and the larger disk counts against the
+   15 GB free storage. Stop/delete Codespaces between sessions.
 
 ## Cost (personal GitHub account)
 
 | Meter | Free quota / month | Notes |
 |---|---|---|
 | Compute | 120 core-hours | This devcontainer requests a 4-core machine → ~30 wall-clock hours |
-| Storage | 15 GB-month | The image + guest overlay fit; **delete** the Codespace between sessions to avoid storage overage |
+| Storage | 15 GB-month | The image + a `tt-sim`-built tt-metal tree (`~/work/tt-metal`) is sizable; **delete** the Codespace between sessions to avoid storage overage |
 
 Stop a Codespace to pause compute billing; delete it (after pushing your
 work) to stop storage billing. See [`HANDOUT.md`](HANDOUT.md) §6.
@@ -152,7 +251,9 @@ them into a Codespaces teaching lab; all simulator credit is theirs.
 | `ttlab` not found | `/usr/local/bin` not on `$PATH` (rare) | Run `/usr/local/bin/ttlab list`. |
 | `qemu-system-x86_64: command not found` | `/opt/qemu/bin` not on PATH | `export PATH=/opt/qemu/bin:$PATH` or open a fresh terminal. |
 | No `ttsim` in `qemu-system-x86_64 -device help` | Image built from upstream QEMU, not the fork | Rebuild from `tenstorrent/ttsim-qemu` `stable-11.0-ttsim`. |
-| Guest download stalls | Network hiccup on first boot | `tt-guest clean && ttlab 01`. |
+| Guest download stalls | Network hiccup on first boot | `tt-guest clean && ttlab 10`. |
 | `ttlab ssh` refused | Guest still booting | Wait for the serial login prompt, retry. |
+| `tt-sim run` says tt-metal not built | tt-metal not provisioned yet | Run `tt-sim setup` (clones + builds; the first build is slow). |
+| matmul example name not found | Binary names vary by tt-metal version | `ls $TT_METAL_HOME/build/programming_examples/ \| grep matmul`. |
 | Codespace can't pull `ghcr.io/prag79/tt-sim-lab` | GHCR package is private | Owner: make the package public under GitHub → Packages. |
 | Build fails in Actions | See the failing step | `gh run view <id> --log-failed`. |

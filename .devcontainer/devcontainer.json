@@ -20,11 +20,11 @@
     }
   },
 
-  "postAttachCommand": "printf '\\n\\033[1;36mttsim-qemu lab ready.\\033[0m\\n\\n' && ttlab list",
+  "postAttachCommand": "printf '\\n\\033[1;36mtt-sim lab ready.\\033[0m Start with: ttlab 00  (then tt-sim setup, then ttlab 01)\\n\\n' && ttlab list",
 
   "hostRequirements": {
     "cpus": 4,
     "memory": "8gb",
-    "storage": "32gb"
+    "storage": "64gb"
   }
 }

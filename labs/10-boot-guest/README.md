@@ -1,4 +1,8 @@
-# Lab 01 — Boot a Linux guest under full-system QEMU
+# Lab 10 — Boot a Linux guest under full-system QEMU
+
+> **Advanced track (optional).** This and labs 11–16 teach the QEMU + `tt-kmd`
+> bring-up story — how the virtual chip appears to a real OS as a PCIe device.
+> If you only want kernel programming, the primary track is labs 01–03.
 
 **Time:** ~15 minutes · **Device:** none
 
@@ -20,7 +24,7 @@ bus for it to sit on.
 ## Run it
 
 ```bash
-ttlab 01
+ttlab 10
 ```
 
 The first run downloads the Ubuntu cloud image (~700 MB, cached
@@ -49,12 +53,12 @@ ip addr                       # user-mode networking gives you 10.0.2.x
 ping -c1 github.com           # outbound internet works (we'll need it in lab 03)
 ```
 
-Keep that `lspci` output in mind — in [lab 02](../02-attach-ttsim/README.md)
+Keep that `lspci` output in mind — in [lab 11](../11-attach-ttsim/README.md)
 a new line will appear for the Tenstorrent device.
 
 ## Two ways to talk to the guest
 
-1. **Serial console** — the terminal you ran `ttlab 01` in. This is the
+1. **Serial console** — the terminal you ran `ttlab 10` in. This is the
    kernel's `ttyS0`; everything the kernel prints lands here.
 2. **SSH** — from a *second* Codespaces terminal:
 
@@ -96,8 +100,8 @@ tt-metal later.
 
 | Symptom | Fix |
 |---|---|
-| Download stalls on first run | `tt-guest clean` then `ttlab 01` to retry the image fetch. |
+| Download stalls on first run | `tt-guest clean` then `ttlab 10` to retry the image fetch. |
 | Boot is *very* slow | Expected under TCG. A KVM-capable host (`ls /dev/kvm`) is far faster; Codespaces typically has none. |
 | `ttlab ssh` refuses connection | The guest may still be booting; wait for the login prompt on the serial console, then retry. |
 
-Next: [`ttlab 02`](../02-attach-ttsim/README.md) — give this machine a Tenstorrent card.
+Next: [`ttlab 11`](../11-attach-ttsim/README.md) — give this machine a Tenstorrent card.

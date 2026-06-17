@@ -1,4 +1,4 @@
-# Lab 04 — Inspect the virtual device (sysfs, BARs, config space)
+# Lab 13 — Inspect the virtual device (sysfs, BARs, config space)
 
 **Time:** ~20 minutes · **Device:** Wormhole (KMD loaded)
 
@@ -11,7 +11,7 @@ debugging a real card that "doesn't come up."
 ## Run it
 
 ```bash
-ttlab 04            # boots WH guest
+ttlab 13            # boots WH guest
 ```
 
 Inside the guest, make sure the driver is loaded (from lab 03):
@@ -84,7 +84,7 @@ debug here transfers directly to silicon.
 
 ## Mini-experiment: compare WH vs. BH BAR4
 
-Note the BAR4 size now (Wormhole, 32 MB). In [lab 06](../06-blackhole-multichip/README.md)
+Note the BAR4 size now (Wormhole, 32 MB). In [lab 15](../15-blackhole-multichip/README.md)
 you'll boot Blackhole (`bar4-size=32G`) and see the same `resource4`
 entry report a *32 GB* window — the single biggest visible difference
 between the two chips at the PCIe level.
@@ -105,4 +105,4 @@ between the two chips at the PCIe level.
 | `driver` symlink missing | KMD not loaded — `sudo insmod ~/tt-kmd/tenstorrent.ko` (lab 03). |
 | `resource4` read errors | Some apertures aren't byte-readable via `dd`; that's fine — use `lspci -vv` to inspect instead. |
 
-Next: [`ttlab 05`](../05-tt-metal-wormhole/README.md) — run an actual tt-metal program.
+Next: [`ttlab 14`](../14-tt-metal-qemu/README.md) — run an actual tt-metal program.

@@ -1,0 +1,31 @@
+{
+  "name": "tt-sim Lab (FULL — tt-metal prebuilt)",
+  "image": "ghcr.io/prag79/tt-sim-lab:full",
+
+  "remoteUser": "student",
+
+  "containerEnv": {
+    "TTSIM_DIR": "/opt/ttsim",
+    "QEMU_PREFIX": "/opt/qemu",
+    "TT_METAL_HOME": "/opt/tt-metal"
+  },
+
+  "postStartCommand": "/usr/local/bin/entrypoint.sh true",
+
+  "forwardPorts": [2222],
+  "portsAttributes": {
+    "2222": {
+      "label": "Guest VM SSH",
+      "onAutoForward": "silent",
+      "visibility": "private"
+    }
+  },
+
+  "postAttachCommand": "printf '\\n\\033[1;36mtt-sim lab ready (FULL: tt-metal prebuilt).\\033[0m tt-metal is already built at /opt/tt-metal \\u2014 skip tt-sim setup; just: ttlab 00, then ttlab 01\\n\\n' && ttlab list",
+
+  "hostRequirements": {
+    "cpus": 8,
+    "memory": "16gb",
+    "storage": "128gb"
+  }
+}

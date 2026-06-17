@@ -1,4 +1,10 @@
-# Lab 05 — Run a tt-metal application on virtual Wormhole
+# Lab 14 — Run a tt-metal application through the full QEMU + driver path
+
+> **Advanced track.** This runs tt-metal the *faithful* way: through QEMU +
+> `tt-kmd` + `/dev/tenstorrent/0`, exactly as on real silicon. It is the
+> heavyweight cousin of the primary kernel labs (01–03), which use the much
+> lighter library-direct flow. Use this lab when you care about the
+> driver/PCIe path itself, not just kernel logic.
 
 **Time:** ~1–3 hours (mostly building tt-metal) · **Device:** Wormhole
 · **Difficulty:** advanced
@@ -36,7 +42,7 @@ then, build from a tt-metal branch that includes it (or cherry-pick it).
 Boot and load the driver:
 
 ```bash
-ttlab 05            # WH guest
+ttlab 14            # WH guest
 ```
 
 ```sh
@@ -88,8 +94,9 @@ silicon uses.
 
 ## Library-direct flow (contrast, no QEMU)
 
-For comparison, ttsim can also be driven *without* QEMU by pointing
-tt-metal straight at the `.so` (no KMD, no `/dev/tenstorrent`):
+This lab is the *faithful* (QEMU + KMD) way to run tt-metal. The other way —
+used by the **primary kernel track (labs 01–03)** — points tt-metal straight
+at the `.so`, with no KMD and no `/dev/tenstorrent`:
 
 ```sh
 export TT_METAL_SIMULATOR=/opt/ttsim/libttsim_wh.so
@@ -97,9 +104,10 @@ cp $TT_METAL_HOME/tt_metal/soc_descriptors/wormhole_b0_80_arch.yaml \
    $(dirname $TT_METAL_SIMULATOR)/soc_descriptor.yaml
 ```
 
-The QEMU flow in this lab is the more faithful one: it exercises the
-real PCIe + KMD path, which is what you want when validating drivers,
-firmware, or anything that touches `/dev/tenstorrent`.
+The `tt-sim` helper wraps exactly this (see [`ttlab 01`](../01-matmul-single-core/README.md)).
+The QEMU flow in *this* lab is the more faithful one: it exercises the real
+PCIe + KMD path, which is what you want when validating drivers, firmware, or
+anything that touches `/dev/tenstorrent`.
 
 ## What you just learned
 
@@ -119,4 +127,4 @@ firmware, or anything that touches `/dev/tenstorrent`.
 | SFPU `SFPLOADMACRO` error | `export TT_METAL_DISABLE_SFPLOADMACRO=1`. |
 | Failure resembling the known WH bug | Confirm your tt-metal includes [PR #46871](https://github.com/tenstorrent/tt-metal/pull/46871). |
 
-Next: [`ttlab 06`](../06-blackhole-multichip/README.md) — Blackhole and a look at multichip.
+Next: [`ttlab 15`](../15-blackhole-multichip/README.md) — Blackhole and a look at multichip.

@@ -1,4 +1,4 @@
-# Lab 07 — Read the one patch that makes all this possible
+# Lab 16 — Read the one patch that makes all this possible
 
 **Time:** ~30 minutes · **Device:** none (this is a code-reading lab)
 
@@ -11,7 +11,7 @@ lists, a PCI vendor ID, and two README files). That's it.
 ## Run it
 
 ```bash
-ttlab 07
+ttlab 16
 ```
 
 `explore.sh` downloads `hw/misc/ttsim.c` and `README.ttsim.md` from the
@@ -19,7 +19,7 @@ fork into your working copy and points out the four parts that matter.
 Then open the file yourself:
 
 ```bash
-nano ~/work/07-the-qemu-patch/ttsim.c
+nano ~/work/16-the-qemu-patch/ttsim.c
 ```
 
 ## The four jobs of `hw/misc/ttsim.c`

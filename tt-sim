@@ -1,0 +1,196 @@
+#!/usr/bin/env bash
+# /usr/local/bin/tt-sim - drive tt-metal against a *virtual* Tenstorrent chip
+# using the ttsim **library-direct** flow (no QEMU, no tt-kmd, no guest VM).
+#
+# This is the engine behind the primary "kernel programming" track (the matmul
+# labs). tt-metal is pointed straight at /opt/ttsim/libttsim_wh.so via the
+# TT_METAL_SIMULATOR env var, so the whole boot -> driver -> PCIe stack is
+# bypassed. It is dramatically lighter and faster than the QEMU/KMD path
+# (labs 10-16) and is the right backend for learning kernel programming, where
+# the device's driver/PCIe layer is not the subject being taught.
+#
+# Subcommands:
+#   tt-sim setup            ensure tt-metal is present & built, wire up the
+#                           library-direct soc descriptor (idempotent)
+#   tt-sim build            (re)build tt-metal
+#   tt-sim env              print the env exports for the library-direct flow
+#   tt-sim run <example>    run a tt-metal programming example under ttsim
+#   tt-sim shell            drop into a shell with the env already exported
+#   tt-sim status           show where tt-metal lives and whether it is built
+#
+# Resolution order for the tt-metal tree (first hit wins):
+#   $TT_METAL_HOME  ->  /opt/tt-metal (image-baked)  ->  ~/work/tt-metal (built
+#   on first `tt-sim setup`, persists across Codespace stop/start).
+
+set -euo pipefail
+
+TTSIM_DIR="${TTSIM_DIR:-/opt/ttsim}"
+WORK_ROOT="${WORK_ROOT:-$HOME/work}"
+WORK_TT_METAL="$WORK_ROOT/tt-metal"
+PREBAKED_TT_METAL="/opt/tt-metal"
+
+# tt-metal branch/commit that includes the ttsim Wormhole fix (PR #46871).
+# Override with TT_METAL_REF if upstream has merged it onto main.
+TT_METAL_REPO="${TT_METAL_REPO:-https://github.com/tenstorrent/tt-metal}"
+TT_METAL_REF="${TT_METAL_REF:-main}"
+
+ARCH="$(uname -m)"
+case "$ARCH" in
+  x86_64|amd64)   LIB_SUFFIX="" ;;
+  aarch64|arm64)  LIB_SUFFIX="_aarch64" ;;
+  *) echo "tt-sim: unsupported host arch '$ARCH'" >&2; exit 1 ;;
+esac
+
+WH_LIB="$TTSIM_DIR/libttsim_wh${LIB_SUFFIX}.so"
+
+die() { echo "tt-sim: $*" >&2; exit 1; }
+
+# --- locate the tt-metal tree ----------------------------------------------
+
+resolve_home() {
+  if [[ -n "${TT_METAL_HOME:-}" && -d "$TT_METAL_HOME" ]]; then
+    echo "$TT_METAL_HOME"; return 0
+  fi
+  if [[ -d "$PREBAKED_TT_METAL" ]]; then
+    echo "$PREBAKED_TT_METAL"; return 0
+  fi
+  if [[ -d "$WORK_TT_METAL" ]]; then
+    echo "$WORK_TT_METAL"; return 0
+  fi
+  return 1
+}
+
+is_built() {
+  local home="$1"
+  [[ -d "$home/build" ]] && compgen -G "$home/build/programming_examples/*" >/dev/null 2>&1
+}
+
+# --- wire up the library-direct soc descriptor -----------------------------
+# In the library-direct flow tt-metal reads a soc_descriptor.yaml that sits
+# next to the .so. We copy Wormhole's descriptor there (idempotent).
+wire_soc_descriptor() {
+  local home="$1"
+  local desc="$home/tt_metal/soc_descriptors/wormhole_b0_80_arch.yaml"
+  [[ -f "$desc" ]] || die "soc descriptor not found at $desc (is tt-metal checked out?)"
+  cp -f "$desc" "$TTSIM_DIR/soc_descriptor.yaml"
+}
+
+# --- subcommands -----------------------------------------------------------
+
+cmd_build() {
+  local home="$1"
+  # tt-metal ships its own dependency installer; run it best-effort so a fresh
+  # tree builds on the minimal lab image (student has NOPASSWD sudo).
+  if [[ -x "$home/install_dependencies.sh" ]]; then
+    echo "==> Installing tt-metal build dependencies (sudo)..."
+    ( cd "$home" && sudo ./install_dependencies.sh ) || \
+      echo "tt-sim: install_dependencies.sh failed; continuing (deps may already be present)" >&2
+  fi
+  echo "==> Building tt-metal in $home (this is the heavy step; grab a coffee)..."
+  # --build-programming-examples is what produces the metal_example_matmul_*
+  # binaries the labs run; without it `tt-sim run` finds nothing.
+  ( cd "$home" && TT_METAL_HOME="$home" ./build_metal.sh --build-programming-examples )
+  echo "==> tt-metal build complete."
+}
+
+cmd_setup() {
+  [[ -f "$WH_LIB" ]] || die "missing $WH_LIB (the virtual Wormhole library)"
+
+  local home
+  if home="$(resolve_home)"; then
+    echo "==> Using tt-metal at: $home"
+  else
+    echo "==> No tt-metal tree found. Cloning into $WORK_TT_METAL ..."
+    echo "    (ref: $TT_METAL_REF — must include PR #46871 for Wormhole/ttsim)"
+    mkdir -p "$WORK_ROOT"
+    git clone --recurse-submodules -b "$TT_METAL_REF" "$TT_METAL_REPO" "$WORK_TT_METAL"
+    home="$WORK_TT_METAL"
+  fi
+
+  if is_built "$home"; then
+    echo "==> tt-metal already built."
+  else
+    cmd_build "$home"
+  fi
+
+  wire_soc_descriptor "$home"
+  echo
+  echo "==> Ready. Library-direct ttsim is wired up:"
+  cmd_env "$home"
+}
+
+cmd_env() {
+  local home="${1:-$(resolve_home || true)}"
+  [[ -n "$home" ]] || die "no tt-metal tree found; run 'tt-sim setup' first"
+  cat <<EOF
+export TT_METAL_HOME="$home"
+export TT_METAL_SIMULATOR="$WH_LIB"
+export TT_METAL_SLOW_DISPATCH_MODE=1
+export TT_METAL_DISABLE_SFPLOADMACRO=1
+EOF
+}
+
+cmd_run() {
+  local home; home="$(resolve_home)" || die "no tt-metal tree; run 'tt-sim setup' first"
+  is_built "$home" || die "tt-metal not built; run 'tt-sim setup' first"
+  [[ $# -ge 1 ]] || die "usage: tt-sim run <example-binary> [args...]"
+
+  wire_soc_descriptor "$home"
+  export TT_METAL_HOME="$home"
+  export TT_METAL_SIMULATOR="$WH_LIB"
+  export TT_METAL_SLOW_DISPATCH_MODE=1
+  export TT_METAL_DISABLE_SFPLOADMACRO=1
+
+  local target="$1"; shift
+  # Accept either a bare example name or a path under build/.
+  if [[ -x "$target" ]]; then
+    : # absolute/relative path given
+  elif [[ -x "$home/build/programming_examples/$target" ]]; then
+    target="$home/build/programming_examples/$target"
+  else
+    die "example '$target' not found (look under $home/build/programming_examples/)"
+  fi
+
+  echo "==> Running $target under library-direct ttsim (Wormhole)"
+  exec "$target" "$@"
+}
+
+cmd_shell() {
+  local home; home="$(resolve_home)" || die "no tt-metal tree; run 'tt-sim setup' first"
+  wire_soc_descriptor "$home"
+  echo "==> Shell with library-direct ttsim env exported. Type 'exit' to leave."
+  TT_METAL_HOME="$home" \
+  TT_METAL_SIMULATOR="$WH_LIB" \
+  TT_METAL_SLOW_DISPATCH_MODE=1 \
+  TT_METAL_DISABLE_SFPLOADMACRO=1 \
+    exec bash
+}
+
+cmd_status() {
+  echo "Virtual chip library : $WH_LIB $( [[ -f "$WH_LIB" ]] && echo '(present)' || echo '(MISSING)')"
+  local home
+  if home="$(resolve_home)"; then
+    echo "tt-metal tree        : $home"
+    if is_built "$home"; then
+      echo "tt-metal build       : built"
+    else
+      echo "tt-metal build       : NOT built (run 'tt-sim setup')"
+    fi
+  else
+    echo "tt-metal tree        : none found (run 'tt-sim setup')"
+  fi
+}
+
+cmd="${1:-status}"; shift || true
+case "$cmd" in
+  setup)   cmd_setup "$@" ;;
+  build)   home="$(resolve_home)" || die "no tt-metal tree; run 'tt-sim setup' first"; cmd_build "$home" ;;
+  env)     cmd_env "$@" ;;
+  run)     cmd_run "$@" ;;
+  shell)   cmd_shell "$@" ;;
+  status)  cmd_status "$@" ;;
+  -h|--help|help)
+    sed -n '2,28p' "$0" | sed 's/^# \{0,1\}//'
+    ;;
+  *) die "unknown subcommand '$cmd' (try: setup|build|env|run|shell|status)" ;;
+esac

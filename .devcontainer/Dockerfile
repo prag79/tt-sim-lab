@@ -57,8 +57,41 @@ RUN groupadd -f kvm && \
 COPY --chown=student:student labs/ /labs/
 COPY ttlab          /usr/local/bin/ttlab
 COPY tt-guest       /usr/local/bin/tt-guest
+COPY tt-sim         /usr/local/bin/tt-sim
 COPY entrypoint.sh  /usr/local/bin/entrypoint.sh
-RUN chmod +x /usr/local/bin/ttlab /usr/local/bin/tt-guest /usr/local/bin/entrypoint.sh
+RUN chmod +x /usr/local/bin/ttlab /usr/local/bin/tt-guest \
+             /usr/local/bin/tt-sim /usr/local/bin/entrypoint.sh
+
+# --- (optional) prebuild tt-metal for the primary kernel track -------------
+# The primary labs (01-03) run tt-metal against the virtual chip via the
+# library-direct flow. tt-metal itself is large to BUILD (tens of GB, long
+# compile) though light to RUN. Baking it in gives students a zero-setup
+# start, but it bloats the image well past a free Codespace's storage quota
+# and likely exceeds a GitHub-hosted runner's disk. So it is OFF by default:
+#
+#   * PREBUILD_TT_METAL=0 (default): the image ships WITHOUT tt-metal. On
+#     first use, `tt-sim setup` clones+builds it into ~/work/tt-metal (which
+#     persists across Codespace stop/start). Best for free Codespaces.
+#   * PREBUILD_TT_METAL=1: clone+build tt-metal into /opt/tt-metal at image
+#     build time. Only enable on a builder with ample disk (a large self-
+#     hosted runner); the result is a "tt-metal already set up" image.
+#
+# Either way `tt-sim` finds the tree automatically (see its resolve order).
+ARG PREBUILD_TT_METAL=0
+ARG TT_METAL_REF=main
+RUN if [ "$PREBUILD_TT_METAL" = "1" ]; then \
+        set -eux; \
+        git clone --recurse-submodules -b "${TT_METAL_REF}" \
+            https://github.com/tenstorrent/tt-metal /opt/tt-metal; \
+        cd /opt/tt-metal; \
+        [ -x ./install_dependencies.sh ] && ./install_dependencies.sh || true; \
+        TT_METAL_HOME=/opt/tt-metal ./build_metal.sh --build-programming-examples; \
+        cp tt_metal/soc_descriptors/wormhole_b0_80_arch.yaml \
+           "${TTSIM_DIR}/soc_descriptor.yaml"; \
+        chown -R student:student /opt/tt-metal; \
+    else \
+        echo "Skipping tt-metal prebuild; students run 'tt-sim setup' on first use."; \
+    fi
 
 USER student
 WORKDIR /home/student/work

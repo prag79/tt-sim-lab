@@ -1,4 +1,4 @@
-# Lab 06 — Blackhole bring-up + a look at multichip
+# Lab 15 — Blackhole bring-up + a look at multichip
 
 **Time:** ~30 minutes · **Device:** Blackhole (`libttsim_bh.so`, `bar4-size=32G`)
 
@@ -10,7 +10,7 @@ loads the KMD against it, and then surveys what's coming with
 ## Run it
 
 ```bash
-ttlab 06            # boots a BH guest (bar4-size=32G)
+ttlab 15            # boots a BH guest (bar4-size=32G)
 ```
 
 Inside the guest:
@@ -100,7 +100,7 @@ emulator.
 
 | Symptom | Fix |
 |---|---|
-| `bar4-size=32M` error on BH | Blackhole needs `32G`; `ttlab 06` sets this for you. |
+| `bar4-size=32M` error on BH | Blackhole needs `32G`; `ttlab 15` sets this for you. |
 | Multichip `.so` not present | The lab image ships single-chip WH/BH; download multichip libs from the [ttsim releases](https://github.com/tenstorrent/ttsim/releases) into `/opt/ttsim`. |
 
-Next: [`ttlab 07`](../07-the-qemu-patch/README.md) — read the one patch that makes all of this possible.
+Next: [`ttlab 16`](../16-the-qemu-patch/README.md) — read the one patch that makes all of this possible.

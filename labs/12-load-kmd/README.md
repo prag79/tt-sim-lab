@@ -1,4 +1,4 @@
-# Lab 03 — Build & load tt-kmd, surface `/dev/tenstorrent/0`
+# Lab 12 — Build & load tt-kmd, surface `/dev/tenstorrent/0`
 
 **Time:** ~25 minutes · **Device:** Wormhole
 
@@ -11,7 +11,7 @@ machine with a real card plugged in.
 ## Run it
 
 ```bash
-ttlab 03
+ttlab 12
 ```
 
 Wait for the guest's autologin shell. The steps below run **inside the
@@ -104,4 +104,4 @@ boot you could `sudo cp tenstorrent.ko /lib/modules/$(uname -r)/...` and
 | `insmod` ok but no `/dev/tenstorrent/0` | `dmesg | grep -i tenstorrent` — if the driver didn't bind, re-check `lspci` shows the device (you booted with `--device wh`). |
 | `apt` / `git` time out | Networking down; confirm `ip addr` shows a `10.0.2.x` address and `ping -c1 github.com` works. |
 
-Next: [`ttlab 04`](../04-inspect-device/README.md) — inspect the device the driver just claimed.
+Next: [`ttlab 13`](../13-inspect-device/README.md) — inspect the device the driver just claimed.

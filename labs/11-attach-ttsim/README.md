@@ -1,4 +1,4 @@
-# Lab 02 — Attach a virtual Wormhole and find it on the bus
+# Lab 11 — Attach a virtual Wormhole and find it on the bus
 
 **Time:** ~15 minutes · **Device:** Wormhole (`libttsim_wh.so`, `bar4-size=32M`)
 
@@ -15,7 +15,7 @@ seeing the raw PCIe endpoint that `libttsim.so` presents.
 ## Run it
 
 ```bash
-ttlab 02
+ttlab 11
 ```
 
 Wait for the autologin shell, then from inside the guest:
@@ -87,7 +87,7 @@ The Tenstorrent line reappears. The chip is entirely a function of the
 
 | Symptom | Fix |
 |---|---|
-| No Tenstorrent line in `lspci` | Confirm you ran `ttlab 02` (device `wh`), not `ttlab 01`. Check QEMU didn't error on the device — see the serial output right after boot. |
+| No Tenstorrent line in `lspci` | Confirm you ran `ttlab 11` (device `wh`), not `ttlab 10`. Check QEMU didn't error on the device — see the serial output right after boot. |
 | `qemu: -device ttsim: ... bar4-size` error | Wormhole must use `32M`; only Blackhole uses `32G`. The dispatcher sets this for you; if you hand-rolled the command, fix the size. |
 
-Next: [`ttlab 03`](../03-load-kmd/README.md) — load the driver and get `/dev/tenstorrent/0`.
+Next: [`ttlab 12`](../12-load-kmd/README.md) — load the driver and get `/dev/tenstorrent/0`.
