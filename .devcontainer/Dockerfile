@@ -78,12 +78,13 @@ RUN chmod +x /usr/local/bin/ttlab /usr/local/bin/tt-guest \
 #
 # Either way `tt-sim` finds the tree automatically (see its resolve order).
 ARG PREBUILD_TT_METAL=0
-ARG TT_METAL_REF=main
+ARG TT_METAL_REF=5a4436244ae1b421504da84c01f81fdfdf6049de
 RUN if [ "$PREBUILD_TT_METAL" = "1" ]; then \
         set -eux; \
-        git clone --recurse-submodules -b "${TT_METAL_REF}" \
-            https://github.com/tenstorrent/tt-metal /opt/tt-metal; \
+        git clone https://github.com/tenstorrent/tt-metal /opt/tt-metal; \
         cd /opt/tt-metal; \
+        git checkout "${TT_METAL_REF}"; \
+        git submodule update --init --recursive; \
         [ -x ./install_dependencies.sh ] && ./install_dependencies.sh || true; \
         TT_METAL_HOME=/opt/tt-metal ./build_metal.sh --build-programming-examples; \
         cp tt_metal/soc_descriptors/wormhole_b0_80_arch.yaml \

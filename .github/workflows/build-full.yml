@@ -23,9 +23,11 @@ on:
         type: string
         default: ubuntu-latest
       tt_metal_ref:
-        description: tt-metal git ref to build (must include PR #46871 for Wormhole)
+        description: >-
+          tt-metal git ref to build (branch, tag, or commit SHA). Defaults to
+          the merge commit of the ttsim Wormhole fix (PR #46871).
         type: string
-        default: main
+        default: 5a4436244ae1b421504da84c01f81fdfdf6049de
       tag:
         description: Image tag to push
         type: string

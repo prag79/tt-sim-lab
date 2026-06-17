@@ -185,10 +185,9 @@ not on every push:
 
 ```bash
 # From the Actions tab, run "Build & push FULL lab image", or:
-gh workflow run build-full.yml \
-  -f runner=ubuntu-latest-16-cores \
-  -f tt_metal_ref=main \
-  -f tag=full
+gh workflow run build-full.yml -f runner=ubuntu-latest-16-cores -f tag=full
+# tt_metal_ref defaults to the pinned PR #46871 merge commit; override to
+# track main:  -f tt_metal_ref=main
 ```
 
 `build-full.yml` reclaims ~30 GB of runner disk first, then builds with

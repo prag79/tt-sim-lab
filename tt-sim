@@ -29,10 +29,11 @@ WORK_ROOT="${WORK_ROOT:-$HOME/work}"
 WORK_TT_METAL="$WORK_ROOT/tt-metal"
 PREBAKED_TT_METAL="/opt/tt-metal"
 
-# tt-metal branch/commit that includes the ttsim Wormhole fix (PR #46871).
-# Override with TT_METAL_REF if upstream has merged it onto main.
+# tt-metal branch/tag/commit to build. Pinned to the merge commit of the
+# ttsim Wormhole fix (PR #46871) for a known-good, reproducible build.
+# Override with TT_METAL_REF (a branch like 'main', a tag, or a commit SHA).
 TT_METAL_REPO="${TT_METAL_REPO:-https://github.com/tenstorrent/tt-metal}"
-TT_METAL_REF="${TT_METAL_REF:-main}"
+TT_METAL_REF="${TT_METAL_REF:-5a4436244ae1b421504da84c01f81fdfdf6049de}"
 
 ARCH="$(uname -m)"
 case "$ARCH" in
@@ -103,7 +104,10 @@ cmd_setup() {
     echo "==> No tt-metal tree found. Cloning into $WORK_TT_METAL ..."
     echo "    (ref: $TT_METAL_REF — must include PR #46871 for Wormhole/ttsim)"
     mkdir -p "$WORK_ROOT"
-    git clone --recurse-submodules -b "$TT_METAL_REF" "$TT_METAL_REPO" "$WORK_TT_METAL"
+    # Clone then check out the ref so it works for a branch, tag, OR commit SHA.
+    git clone "$TT_METAL_REPO" "$WORK_TT_METAL"
+    ( cd "$WORK_TT_METAL" && git checkout "$TT_METAL_REF" && \
+      git submodule update --init --recursive )
     home="$WORK_TT_METAL"
   fi
 
