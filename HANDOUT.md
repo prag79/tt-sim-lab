@@ -1,0 +1,263 @@
+# Student Handout — ttsim-qemu Lab on GitHub Codespaces
+
+Welcome. Over the next few hours you will run a **full-system simulation
+of Tenstorrent AI hardware**: boot Linux inside QEMU, attach a virtual
+Wormhole/Blackhole over (virtual) PCIe, build and load the real
+Tenstorrent kernel driver, watch `/dev/tenstorrent/0` appear, and read
+the single QEMU patch that makes it all possible — entirely inside a
+browser tab, with **nothing installed on your laptop**.
+
+This document walks you through the setup once. After that, everything
+you need is in the per-lab `README.md` files.
+
+## 1. What you need before starting
+
+### 1.1 A personal GitHub account
+
+If you don't have one, create a **free personal account** at
+<https://github.com/join>. School-issued accounts work too, but a
+personal account is preferred so your Codespace and edits follow you
+after the course ends.
+
+GitHub's free tier includes:
+
+| Resource | Free quota / month |
+|---|---|
+| Codespaces compute | 120 core-hours (≈ 30 hours on the 4-core machine this lab requests) |
+| Codespaces storage | 15 GB-month |
+
+The lab fits comfortably if you **stop** your Codespace on breaks and
+**delete** it when you're done for the day (§6).
+
+### 1.2 A modern web browser
+
+Chrome, Firefox, Safari, or Edge from the last two years. You'll spend
+the lab in the **VS Code** tab GitHub auto-opens — its terminal and
+editor are all you need. (Unlike the sister renode-lab, there's no GUI
+desktop here; ttsim-qemu is entirely terminal/serial-based.)
+
+### 1.3 Working knowledge of basic Linux
+
+You should be comfortable, from a terminal, with:
+
+- Navigating: `pwd`, `cd`, `ls -la`
+- Reading files: `cat`, `less`, `dmesg`, `tail -f`
+- Editing files: `nano`, `vim`, or VS Code's editor
+- Pipes/redirection: `|`, `>`, `grep`
+- Processes & modules: `ps`, `lsmod`, `sudo`
+- Recognising errors and reading exit codes
+
+You do **not** need to know Docker, QEMU internals, or Codespaces
+internals going in — the labs teach the QEMU parts.
+
+### 1.4 Familiarity with basic PCIe / device concepts
+
+You'll get much more out of the labs if you already understand, at a
+hand-wave level:
+
+- A **PCIe device** sits on a bus and is identified by a
+  **vendor ID + device ID** (Tenstorrent's vendor ID is `0x1e52`).
+- A device exposes **BARs** (Base Address Registers) — memory windows
+  the CPU reads/writes to talk to the hardware. Tenstorrent's **BAR4**
+  is the large device-memory aperture (Wormhole 32 MB, Blackhole 32 GB).
+- **Config space** is a small standard region holding the IDs, BAR
+  sizes, and capability list; the OS reads it to enumerate the device.
+- **DMA** lets a device read/write *system* RAM directly.
+- A **kernel module / driver** (here, `tt-kmd` → `tenstorrent.ko`)
+  **binds** to a device by its IDs and creates a `/dev/...` node that
+  userspace opens.
+- A **full-system emulator** (QEMU) emulates a whole computer — CPU,
+  RAM, buses, devices — so a guest OS boots unmodified.
+
+Lab 00 connects these to the three software pieces; labs 02–04 make
+every bullet above concrete on a (virtual) Tenstorrent card.
+
+## 2. First launch (only do this once)
+
+### 2.1 Open the lab repository
+
+Visit <https://github.com/prag79/tt-sim-lab>. Sign in if prompted.
+
+### 2.2 Click the "Open in GitHub Codespaces" badge
+
+[![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)](https://codespaces.new/prag79/tt-sim-lab?quickstart=1)
+
+GitHub will:
+
+1. Show a **"Create codespace"** screen. This lab requests a **4-core /
+   8 GB** machine (set in `.devcontainer/devcontainer.json`). Click
+   **Create codespace**.
+2. Boot a small Linux VM (~30 s).
+3. Pull the prebuilt image `ghcr.io/prag79/tt-sim-lab:latest` (~1 min,
+   first launch only — cached afterwards).
+4. Open VS Code in your browser, attached to the container.
+
+### 2.3 Verify the environment
+
+In the VS Code terminal (open one with **Ctrl-`** if needed):
+
+```bash
+ttlab list
+```
+
+You should see the eight labs listed. Then run the self-test:
+
+```bash
+ttlab 00
+```
+
+You should see green `[ ok ]` lines confirming the QEMU fork, the
+`ttsim` PCI device, and `libttsim_wh.so` / `libttsim_bh.so`. If any line
+is red, see §5.
+
+### 2.4 Boot your first guest
+
+```bash
+ttlab 01
+```
+
+The **first** run downloads an Ubuntu cloud image (~700 MB) and boots it
+— under TCG (no KVM in Codespaces) this takes a few minutes. When you
+reach `tt@ttsim:~$`, you're inside the guest. Type `lspci` (no
+Tenstorrent device yet), then `sudo poweroff` (or **Ctrl-a x**) to exit.
+
+If that worked, your environment is healthy.
+
+## 3. The eight exercises
+
+Each lab has its own detailed `README.md`. Do them **in order** — they
+build on each other.
+
+| Lab | Time | What you'll do | Detailed README |
+|---|---|---|---|
+| **00** | ~5 min | Verify the three components and how they fit together. | [`labs/00-orientation/README.md`](labs/00-orientation/README.md) |
+| **01** | ~15 min | Boot a full Linux guest under QEMU; meet the serial console and SSH. | [`labs/01-boot-guest/README.md`](labs/01-boot-guest/README.md) |
+| **02** | ~15 min | Attach a virtual Wormhole with one flag; find it in `lspci`; read its BARs. | [`labs/02-attach-ttsim/README.md`](labs/02-attach-ttsim/README.md) |
+| **03** | ~25 min | Build & `insmod` the stock `tt-kmd`; watch `/dev/tenstorrent/0` appear. | [`labs/03-load-kmd/README.md`](labs/03-load-kmd/README.md) |
+| **04** | ~20 min | Inspect the device via `/sys`, BARs, and config space. | [`labs/04-inspect-device/README.md`](labs/04-inspect-device/README.md) |
+| **05** | 1–3 h | Run a real tt-metal program on virtual Wormhole (advanced; bigger host). | [`labs/05-tt-metal-wormhole/README.md`](labs/05-tt-metal-wormhole/README.md) |
+| **06** | ~30 min | Blackhole bring-up (32 GB BAR4) + the multichip roadmap. | [`labs/06-blackhole-multichip/README.md`](labs/06-blackhole-multichip/README.md) |
+| **07** | ~30 min | Read `hw/misc/ttsim.c` — how a `.so` becomes a PCIe chip. | [`labs/07-the-qemu-patch/README.md`](labs/07-the-qemu-patch/README.md) |
+
+**The two-terminal rhythm:** run `ttlab NN` in one terminal (it boots
+the guest and shows the serial console), then open a **second** VS Code
+terminal and run `ttlab ssh` to work inside the guest interactively.
+`ttlab stop` powers it off.
+
+## 4. Where your edits live
+
+`ttlab NN` copies each lab into a writable scratch tree on first use:
+
+| Path | What it is | Survives stop? | Survives rebuild? | Survives delete? |
+|---|---|:---:|:---:|:---:|
+| `/labs/<lab-name>/` | Read-only image content | yes | no | no |
+| `~/work/<lab-name>/` | Editable copy made by `ttlab NN` | **yes** | no | no |
+| `~/work/.ttsim-guest/` | Guest base image, disk overlay, seed, SSH key | **yes** | no | no |
+| `/workspaces/tt-sim-lab/` | The cloned git repo | yes | yes | only if `git push`-ed |
+
+**Important:** anything you build *inside the guest* (your `tt-kmd`
+clone, `tenstorrent.ko`, a tt-metal tree) lives on the guest's disk
+overlay under `~/work/.ttsim-guest/guest.qcow2`, which **survives
+Codespace stop/start**. It is lost only if you `tt-guest reset`/`clean`
+or the Codespace is deleted.
+
+### 4.1 Persisting lab edits past Codespace deletion
+
+`prag79/tt-sim-lab` is read-only for you. To save edits you make to the
+lab files, fork and push to your fork. Run these **inside the Codespace**
+in `/workspaces/tt-sim-lab/`:
+
+```bash
+cd /workspaces/tt-sim-lab
+
+# 1. One-time: fork and rewire remotes (origin = your fork, upstream = prag79):
+gh repo fork --remote --remote-name=origin
+git remote -v
+
+# 2. Work on a branch:
+git checkout -b my-experiments
+
+# 3. Copy any lab edits back into the tracked tree:
+cp -ru ~/work/02-attach-ttsim/.  labs/02-attach-ttsim/
+# ...repeat for any lab you changed.
+
+# 4. Commit and push to YOUR fork:
+git add -A
+git commit -m "my ttsim-qemu lab notes"
+git push -u origin my-experiments
+```
+
+> The **guest disk image is not tracked in git** (it's gigabytes and
+> in `.gitignore`). To carry guest-side work to another machine, copy
+> the artifact out of the guest (`scp`, or `git push` from inside the
+> guest) rather than trying to commit the `.qcow2`.
+
+## 5. Troubleshooting
+
+| Symptom | Likely cause | Fix |
+|---|---|---|
+| `ttlab 00` shows a red `[FAIL]` for QEMU | PATH not set in this shell | `export PATH=/opt/qemu/bin:$PATH`, or open a new terminal. |
+| `ttlab 00` shows no `ttsim` device | Image built from upstream QEMU | Rebuild the image from the `stable-11.0-ttsim` fork branch. |
+| First `ttlab 01` boot hangs at download | Network hiccup | `tt-guest clean` then `ttlab 01`. |
+| Guest boot is very slow | No KVM in Codespaces → TCG | Expected. A KVM host (`ls /dev/kvm`) is much faster. |
+| `ttlab ssh` "Connection refused" | Guest still booting | Wait for the serial login prompt, then retry. |
+| No Tenstorrent line in `lspci` | Booted without a device | Use `ttlab 02`+ (device `wh`), not `ttlab 01`. |
+| `tt-kmd` `make` fails (no `build` dir) | Missing kernel headers | In the guest: `sudo apt install -y linux-headers-generic` (match `uname -r`). |
+| `insmod` ok but no `/dev/tenstorrent/0` | Driver didn't bind | `dmesg | grep -i tenstorrent`; confirm `lspci` shows the device. |
+| Codespace can't pull the image | GHCR package private | Owner makes the `tt-sim-lab` package public under GitHub → Packages. |
+
+## 6. Cost discipline (so you don't burn quota)
+
+1. **Stop the Codespace when you walk away.** Bottom-left of VS Code →
+   **Stop codespace**. Compute billing pauses immediately. Your guest
+   disk overlay (and lab edits) survive a stop.
+2. **Delete the Codespace when you're done for the day** — after pushing
+   any lab edits you care about (§4.1):
+
+   ```bash
+   gh codespace list
+   gh codespace delete --codespace <name> --force
+   ```
+
+   Note: deleting also discards the guest disk overlay, so finish or
+   copy out guest-side work first.
+
+Recreate any time from the badge; only the first launch is slow.
+
+## 7. Where to go after the labs
+
+- ttsim (the simulator): <https://github.com/tenstorrent/ttsim>
+- ttsim-qemu (the QEMU fork): <https://github.com/tenstorrent/ttsim-qemu>
+- tt-kmd (the kernel driver): <https://github.com/tenstorrent/tt-kmd>
+- tt-metal (the application stack): <https://github.com/tenstorrent/tt-metal>
+- Setup reference (upstream): <https://github.com/tenstorrent/ttsim#running-ttsim-as-a-qemu-pci-device>
+
+ttsim does not accept pull requests (development is internal), but bug
+reports and feature requests via GitHub issues are welcome.
+
+---
+
+**Quick reference card** (print this if you want a single-page cheat
+sheet):
+
+```
+Open lab:           click the badge in the README
+List labs:          ttlab list                          (banner runs this on attach)
+Self-test:          ttlab 00                             5-min env check, no boot
+Boot guest:         ttlab 01 (none) / 02..05 (WH) / 06 (BH)
+SSH into guest:     ttlab ssh                            (2nd terminal; user/pass tt/tt)
+Power off guest:    ttlab stop      (or in guest: sudo poweroff; or Ctrl-a x)
+See the device:     (in guest) lspci -nn | grep -i tenstorrent
+Load the driver:    (in guest) git clone .../tt-kmd && cd tt-kmd && make && sudo insmod tenstorrent.ko
+Device node:        (in guest) ls -l /dev/tenstorrent/
+Driver log:         (in guest) dmesg | grep -i tenstorrent
+WH vs BH:           libttsim_wh.so bar4-size=32M   |   libttsim_bh.so bar4-size=32G
+Read the patch:     ttlab 07  ->  nano ~/work/07-the-qemu-patch/ttsim.c
+Reset guest disk:   tt-guest reset            (keeps the downloaded base image)
+Save lab edits:     gh repo fork --remote --remote-name=origin       (one-time)
+                    git checkout -b my-experiments
+                    cp -ru ~/work/<lab>/. labs/<lab>/
+                    git add -A && git commit -m "..." && git push -u origin my-experiments
+Stop Codespace:     bottom-left of VS Code -> Stop codespace
+Delete Codespace:   gh codespace delete -c <name> --force            (AFTER pushing)
+```

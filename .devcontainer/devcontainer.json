@@ -1,0 +1,30 @@
+{
+  "name": "ttsim-qemu Lab",
+  "image": "ghcr.io/prag79/tt-sim-lab:latest",
+
+  "remoteUser": "student",
+
+  "containerEnv": {
+    "TTSIM_DIR": "/opt/ttsim",
+    "QEMU_PREFIX": "/opt/qemu"
+  },
+
+  "postStartCommand": "/usr/local/bin/entrypoint.sh true",
+
+  "forwardPorts": [2222],
+  "portsAttributes": {
+    "2222": {
+      "label": "Guest VM SSH",
+      "onAutoForward": "silent",
+      "visibility": "private"
+    }
+  },
+
+  "postAttachCommand": "printf '\\n\\033[1;36mttsim-qemu lab ready.\\033[0m\\n\\n' && ttlab list",
+
+  "hostRequirements": {
+    "cpus": 4,
+    "memory": "8gb",
+    "storage": "32gb"
+  }
+}

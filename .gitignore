@@ -1,0 +1,8 @@
+# macOS
+.DS_Store
+
+# Local guest images / build artifacts a student might leave behind
+*.qcow2
+*.img
+*.iso
+seed/

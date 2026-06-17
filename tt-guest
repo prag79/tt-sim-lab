@@ -1,0 +1,241 @@
+#!/usr/bin/env bash
+# /usr/local/bin/tt-guest - boot a Linux guest under the ttsim QEMU fork,
+# optionally with a virtual Tenstorrent PCIe device (libttsim.so) attached.
+#
+# This is the shared engine behind every `ttlab NN` exercise. The labs differ
+# only in *which* device they attach (none / Wormhole / Blackhole) and what you
+# do once you are inside the guest.
+#
+# Subcommands:
+#   tt-guest prepare              download the Ubuntu cloud image + build a
+#                                 cloud-init seed (idempotent; first run only)
+#   tt-guest boot [--device D]    boot the guest on the serial console
+#   tt-guest ssh  [cmd...]        ssh into a running guest (user tt / pass tt)
+#   tt-guest stop                 power off a running guest
+#   tt-guest status               show whether a guest is running
+#   tt-guest reset                delete the writable overlay (keep base image)
+#   tt-guest clean                delete everything (base image included)
+#
+# --device D selects the virtual chip:
+#   none  (default)  no Tenstorrent device          (lab 01)
+#   wh               Wormhole,   bar4-size=32M       (labs 02-05)
+#   bh               Blackhole,  bar4-size=32G       (lab 06)
+
+set -euo pipefail
+
+STATE_DIR="${TT_GUEST_STATE:-$HOME/work/.ttsim-guest}"
+TTSIM_DIR="${TTSIM_DIR:-/opt/ttsim}"
+SSH_PORT="${TT_GUEST_SSH_PORT:-2222}"
+GUEST_MEM="${TT_GUEST_MEM:-2048}"
+GUEST_SMP="${TT_GUEST_SMP:-2}"
+DISK_SIZE="${TT_GUEST_DISK:-20G}"
+
+ARCH="$(uname -m)"
+case "$ARCH" in
+  x86_64|amd64)
+    QEMU=qemu-system-x86_64
+    CLOUD_ARCH=amd64
+    LIB_SUFFIX=""
+    ;;
+  aarch64|arm64)
+    QEMU=qemu-system-aarch64
+    CLOUD_ARCH=arm64
+    LIB_SUFFIX="_aarch64"
+    ;;
+  *) echo "tt-guest: unsupported host arch '$ARCH'" >&2; exit 1 ;;
+esac
+
+CLOUD_IMG_URL="https://cloud-images.ubuntu.com/jammy/current/jammy-server-cloudimg-${CLOUD_ARCH}.img"
+BASE_IMG="$STATE_DIR/base-${CLOUD_ARCH}.img"
+OVERLAY="$STATE_DIR/guest.qcow2"
+SEED_ISO="$STATE_DIR/seed.iso"
+PIDFILE="$STATE_DIR/qemu.pid"
+
+# --- helpers ---------------------------------------------------------------
+
+die() { echo "tt-guest: $*" >&2; exit 1; }
+
+device_args() {
+  # Echo the -device argument(s) for the requested virtual chip, or nothing.
+  local dev="$1" lib
+  case "$dev" in
+    none|"") return 0 ;;
+    wh|wormhole)
+      lib="$TTSIM_DIR/libttsim_wh${LIB_SUFFIX}.so"
+      [[ -f "$lib" ]] || die "missing $lib"
+      echo "-device ttsim,lib=$lib,bar4-size=32M"
+      ;;
+    bh|blackhole)
+      lib="$TTSIM_DIR/libttsim_bh${LIB_SUFFIX}.so"
+      [[ -f "$lib" ]] || die "missing $lib"
+      echo "-device ttsim,lib=$lib,bar4-size=32G"
+      ;;
+    *) die "unknown --device '$dev' (use none|wh|bh)" ;;
+  esac
+}
+
+guest_running() {
+  [[ -f "$PIDFILE" ]] && kill -0 "$(cat "$PIDFILE")" 2>/dev/null
+}
+
+# --- prepare ---------------------------------------------------------------
+
+cmd_prepare() {
+  mkdir -p "$STATE_DIR"
+
+  if [[ ! -f "$BASE_IMG" ]]; then
+    echo "==> Downloading Ubuntu 22.04 cloud image (~700 MB, first run only)..."
+    wget --progress=dot:giga -O "$BASE_IMG.partial" "$CLOUD_IMG_URL"
+    mv "$BASE_IMG.partial" "$BASE_IMG"
+  fi
+
+  if [[ ! -f "$OVERLAY" ]]; then
+    echo "==> Creating writable overlay disk ($DISK_SIZE)..."
+    qemu-img create -f qcow2 -F qcow2 -b "$BASE_IMG" "$OVERLAY" "$DISK_SIZE" >/dev/null
+  fi
+
+  if [[ ! -f "$STATE_DIR/id_ed25519" ]]; then
+    echo "==> Generating an SSH key for passwordless guest access..."
+    ssh-keygen -t ed25519 -N "" -C "ttsim-lab" -f "$STATE_DIR/id_ed25519" >/dev/null
+  fi
+
+  if [[ ! -f "$SEED_ISO" ]]; then
+    echo "==> Building cloud-init seed (user 'tt', password 'tt', serial autologin)..."
+    local tmp pwhash pubkey
+    tmp="$(mktemp -d)"
+    # Generate the SHA-512 crypt hash at runtime (inside Linux) so we never
+    # ship a stale/invalid hardcoded hash.
+    pwhash="$(openssl passwd -6 tt)"
+    pubkey="$(cat "$STATE_DIR/id_ed25519.pub")"
+    cat >"$tmp/meta-data" <<EOF
+instance-id: ttsim-lab
+local-hostname: ttsim
+EOF
+    cat >"$tmp/user-data" <<EOF
+#cloud-config
+ssh_pwauth: true
+users:
+  - name: tt
+    sudo: ALL=(ALL) NOPASSWD:ALL
+    groups: sudo
+    shell: /bin/bash
+    lock_passwd: false
+    passwd: $pwhash
+    ssh_authorized_keys:
+      - $pubkey
+chpasswd:
+  expire: false
+# Autologin on the serial console so 'tt-guest boot' drops you at a shell.
+write_files:
+  - path: /etc/systemd/system/serial-getty@ttyS0.service.d/autologin.conf
+    content: |
+      [Service]
+      ExecStart=
+      ExecStart=-/sbin/agetty --autologin tt --noclear %I 115200 vt220
+runcmd:
+  - systemctl daemon-reload
+  - systemctl restart serial-getty@ttyS0.service
+EOF
+    cloud-localds "$SEED_ISO" "$tmp/user-data" "$tmp/meta-data"
+    rm -rf "$tmp"
+  fi
+
+  echo "==> Guest prepared under $STATE_DIR"
+}
+
+# --- boot ------------------------------------------------------------------
+
+cmd_boot() {
+  local device=none
+  while [[ $# -gt 0 ]]; do
+    case "$1" in
+      --device) device="$2"; shift 2 ;;
+      --device=*) device="${1#*=}"; shift ;;
+      *) die "boot: unknown arg '$1'" ;;
+    esac
+  done
+
+  [[ -f "$OVERLAY" && -f "$SEED_ISO" ]] || cmd_prepare
+  guest_running && die "a guest is already running (pid $(cat "$PIDFILE")); 'tt-guest stop' first"
+
+  # shellcheck disable=SC2207
+  local dev_args=($(device_args "$device"))
+
+  local accel="kvm:tcg"
+  local machine_args=(-machine q35 -cpu max)
+  if [[ "$ARCH" == aarch64 || "$ARCH" == arm64 ]]; then
+    machine_args=(-machine virt -cpu max)
+    [[ -f /usr/share/qemu-efi-aarch64/QEMU_EFI.fd ]] && \
+      machine_args+=(-bios /usr/share/qemu-efi-aarch64/QEMU_EFI.fd)
+  fi
+
+  echo "==> Booting guest (device: $device). Exit QEMU with: Ctrl-a x"
+  echo "    SSH from another terminal:  tt-guest ssh"
+  echo
+
+  exec "$QEMU" \
+    "${machine_args[@]}" \
+    -accel "$accel" \
+    -smp "$GUEST_SMP" -m "$GUEST_MEM" \
+    -drive file="$OVERLAY",if=virtio,format=qcow2 \
+    -drive file="$SEED_ISO",if=virtio,format=raw \
+    -netdev user,id=net0,hostfwd=tcp::"$SSH_PORT"-:22 \
+    -device virtio-net-pci,netdev=net0 \
+    -pidfile "$PIDFILE" \
+    -nographic \
+    "${dev_args[@]}"
+}
+
+# --- ssh / stop / status ---------------------------------------------------
+
+cmd_ssh() {
+  local key_args=()
+  [[ -f "$STATE_DIR/id_ed25519" ]] && key_args=(-i "$STATE_DIR/id_ed25519")
+  ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null \
+      -o LogLevel=ERROR "${key_args[@]}" -p "$SSH_PORT" tt@localhost "$@"
+}
+
+cmd_stop() {
+  if guest_running; then
+    echo "==> Powering off guest (pid $(cat "$PIDFILE"))..."
+    cmd_ssh "sudo poweroff" 2>/dev/null || kill "$(cat "$PIDFILE")" 2>/dev/null || true
+  else
+    echo "==> No guest running."
+  fi
+  rm -f "$PIDFILE"
+}
+
+cmd_status() {
+  if guest_running; then
+    echo "Guest RUNNING (pid $(cat "$PIDFILE")), ssh: tt-guest ssh"
+  else
+    echo "Guest not running."
+  fi
+}
+
+cmd_reset() {
+  rm -f "$OVERLAY" "$SEED_ISO"
+  echo "==> Overlay + seed deleted. Base image kept. Next boot is fresh."
+}
+
+cmd_clean() {
+  rm -rf "$STATE_DIR"
+  echo "==> Removed $STATE_DIR (base image included)."
+}
+
+# --- dispatch --------------------------------------------------------------
+
+cmd="${1:-status}"; shift || true
+case "$cmd" in
+  prepare) cmd_prepare "$@" ;;
+  boot)    cmd_boot "$@" ;;
+  ssh)     cmd_ssh "$@" ;;
+  stop)    cmd_stop "$@" ;;
+  status)  cmd_status "$@" ;;
+  reset)   cmd_reset "$@" ;;
+  clean)   cmd_clean "$@" ;;
+  -h|--help|help)
+    sed -n '2,40p' "$0" | sed 's/^# \{0,1\}//'
+    ;;
+  *) die "unknown subcommand '$cmd' (try: prepare|boot|ssh|stop|status|reset|clean)" ;;
+esac

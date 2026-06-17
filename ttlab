@@ -1,0 +1,130 @@
+#!/usr/bin/env bash
+# /usr/local/bin/ttlab - dispatcher for the ttsim-qemu exercises.
+# Usage: ttlab {list|00|01|02|03|04|05|06|07|ssh|stop|shell}
+#
+# On first run of `ttlab NN`, the canonical (root-owned, image-baked) lab dir
+# under $LABS_ROOT is mirrored into $WORK_ROOT/<lab-name>/ so the student can
+# edit READMEs / scripts without touching the read-only image. `cp -ru` is
+# idempotent: re-running won't clobber edits but pulls in new upstream files.
+#
+# Most labs simply boot the shared Linux guest under the ttsim QEMU fork with
+# a particular virtual chip attached (none / Wormhole / Blackhole) via the
+# `tt-guest` helper. What you *do* in the guest is described in each lab's
+# README.md.
+
+set -euo pipefail
+
+LABS_ROOT="${LABS_ROOT:-/labs}"
+WORK_ROOT="${WORK_ROOT:-$HOME/work}"
+
+prepare_workdir() {
+  local lab="$1"
+  local src="$LABS_ROOT/$lab"
+  local dst="$WORK_ROOT/$lab"
+  [[ -d "$src" ]] || { echo "ttlab: no such lab '$lab' under $LABS_ROOT" >&2; exit 1; }
+  mkdir -p "$dst"
+  cp -ru "$src/." "$dst/"
+  cd "$dst"
+}
+
+banner() {
+  printf '\n\033[1;36m== %s ==\033[0m\n' "$1"
+  echo "Full walkthrough: $WORK_ROOT/$2/README.md"
+  echo
+}
+
+cmd="${1:-list}"; shift || true
+
+case "$cmd" in
+  list|"")
+    cat <<'EOF'
+Available labs:
+  00       - orientation: verify QEMU + the ttsim PCI device + libttsim.so
+  01       - boot a Linux guest under QEMU full-system (no device yet)
+  02       - attach a virtual Wormhole PCIe device; find it with lspci
+  03       - build & load tt-kmd; surface /dev/tenstorrent/0
+  04       - inspect the virtual device (sysfs, BARs, config space)
+  05       - run a tt-metal application on virtual Wormhole (advanced)
+  06       - Blackhole bring-up + a look at multichip (N300/P300/T3000/Galaxy)
+  07       - read the one QEMU patch: hw/misc/ttsim.c, the PCI device model
+  ssh      - ssh into the running guest (also: tt-guest ssh)
+  stop     - power off the running guest
+  shell    - drop to a plain bash shell
+
+Run with: ttlab 00 | ttlab 01 | ... | ttlab 07
+Boot a guest in one terminal; ssh in from another with `ttlab ssh`.
+EOF
+    ;;
+
+  00|00-orientation)
+    prepare_workdir 00-orientation
+    exec bash check.sh
+    ;;
+
+  01|01-boot-guest)
+    prepare_workdir 01-boot-guest
+    banner "Lab 01 - boot a Linux guest (no Tenstorrent device)" 01-boot-guest
+    exec tt-guest boot --device none
+    ;;
+
+  02|02-attach-ttsim)
+    prepare_workdir 02-attach-ttsim
+    banner "Lab 02 - attach a virtual Wormhole PCIe device" 02-attach-ttsim
+    exec tt-guest boot --device wh
+    ;;
+
+  03|03-load-kmd)
+    prepare_workdir 03-load-kmd
+    banner "Lab 03 - build & load tt-kmd, surface /dev/tenstorrent/0" 03-load-kmd
+    exec tt-guest boot --device wh
+    ;;
+
+  04|04-inspect-device)
+    prepare_workdir 04-inspect-device
+    banner "Lab 04 - inspect the virtual device" 04-inspect-device
+    exec tt-guest boot --device wh
+    ;;
+
+  05|05-tt-metal-wormhole)
+    prepare_workdir 05-tt-metal-wormhole
+    banner "Lab 05 - run a tt-metal app on virtual Wormhole (advanced)" 05-tt-metal-wormhole
+    exec tt-guest boot --device wh
+    ;;
+
+  06|06-blackhole-multichip)
+    prepare_workdir 06-blackhole-multichip
+    banner "Lab 06 - Blackhole bring-up + multichip preview" 06-blackhole-multichip
+    exec tt-guest boot --device bh
+    ;;
+
+  07|07-the-qemu-patch)
+    prepare_workdir 07-the-qemu-patch
+    banner "Lab 07 - read the one QEMU patch (hw/misc/ttsim.c)" 07-the-qemu-patch
+    exec bash explore.sh
+    ;;
+
+  ssh)
+    exec tt-guest ssh "$@"
+    ;;
+
+  stop)
+    exec tt-guest stop
+    ;;
+
+  shell)
+    exec bash
+    ;;
+
+  -h|--help|help)
+    echo "usage: ttlab {list|00|01|02|03|04|05|06|07|ssh|stop|shell}"
+    echo
+    echo "ttlab NN mirrors /labs/<NN-...>/ into $WORK_ROOT/<NN-...>/ and runs it."
+    echo "Boot a guest with 'ttlab NN'; from a second terminal use 'ttlab ssh'."
+    ;;
+
+  *)
+    echo "ttlab: unknown command '$cmd'" >&2
+    echo "usage: ttlab {list|00|01|02|03|04|05|06|07|ssh|stop|shell}" >&2
+    exit 1
+    ;;
+esac
