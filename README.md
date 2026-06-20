@@ -131,6 +131,10 @@ work interactively.
 | `ttlab 02` | Multi-core matmul: SPMD work-splitting across the Tensix grid, per-core runtime args | [`labs/02-matmul-multi-core/`](labs/02-matmul-multi-core/) |
 | `ttlab 03` | Multicast: NoC data reuse to kill redundant DRAM reads in multi-core matmul | [`labs/03-matmul-multicast/`](labs/03-matmul-multicast/) |
 
+See [`labs/MATMUL_GUIDE.md`](labs/MATMUL_GUIDE.md) for a **student walkthrough of
+the matmul source code** (all three labs) and an explanation of the test output
+(`409600`, PCC, Test Passed).
+
 These mirror the upstream
 [TT-Metalium matmul labs](https://github.com/tenstorrent/tt-metal/tree/main/docs/source/tt-metalium/tt_metal/labs/matmul).
 On the **FULL** image, tt-metal is prebuilt — students run examples immediately.

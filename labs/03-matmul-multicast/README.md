@@ -13,6 +13,8 @@ multi-core matmul actually fast.
 > Mirrors the upstream
 > [TT-Metalium Lab 3: Multicast for Improved Data Reuse](https://docs.tenstorrent.com/tt-metal/latest/tt-metalium/index.html)
 > and the `matmul_multicore_reuse_mcast` programming example.
+>
+> **Deep dive:** [`MATMUL_GUIDE.md`](../MATMUL_GUIDE.md) — §5 multicast.
 
 ## Concepts this lab teaches
 

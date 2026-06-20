@@ -157,6 +157,10 @@ core and matched a CPU golden reference. Your environment is healthy.
 Each lab has its own detailed `README.md`. Do the **primary track in order**
 — the labs build on each other. The advanced track is optional.
 
+For a **unified source-code walkthrough** (host, kernels, CBs, and how to
+read `Output vector of size 409600` / PCC / Test Passed), see
+[`labs/MATMUL_GUIDE.md`](labs/MATMUL_GUIDE.md).
+
 ### Primary track — kernel programming (library-direct ttsim)
 
 | Lab | Time | What you'll do | Detailed README |

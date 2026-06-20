@@ -11,6 +11,8 @@ fast.
 > Mirrors the upstream
 > [TT-Metalium Lab 2: Multi Core Matrix Multiplication](https://docs.tenstorrent.com/tt-metal/latest/tt-metalium/index.html)
 > and the `matmul_multi_core` programming example.
+>
+> **Deep dive:** [`MATMUL_GUIDE.md`](../MATMUL_GUIDE.md) — §4 multi-core SPMD.
 
 ## Concepts this lab teaches
 

@@ -16,6 +16,9 @@ RISC-V/compute engines with results **bit-exact to silicon**.
 > [Matmul (Single Core)](https://docs.tenstorrent.com/tt-metal/latest/tt-metalium/tt_metal/examples/matmul_single_core.html)
 > programming example. Read those for the full theory; this README is the
 > "run it on the virtual chip" recipe plus the concepts to focus on.
+>
+> **Deep dive:** [`MATMUL_GUIDE.md`](../MATMUL_GUIDE.md) — source walkthrough
+> for all three labs and what the test output means (`409600`, PCC, Test Passed).
 
 ## Concepts this lab teaches
 
