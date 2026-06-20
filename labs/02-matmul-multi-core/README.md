@@ -68,6 +68,25 @@ Compare it against the single-core version from Lab 01 and find the deltas:
 4. **Kernels.** They barely change — the parallelism lives in the *host*
    orchestration, not the kernel code. That is a key takeaway.
 
+## Edit & rebuild
+
+Source tree (same layout as Lab 01, different example):
+
+```bash
+$TT_METAL_HOME/tt_metal/programming_examples/matmul/matmul_multi_core/
+```
+
+Focus your edits on the **host** file — that is where core ranges, work
+splitting, and per-core runtime args live. Kernel changes under `kernels/`
+are re-JITed on the next run; host changes need a rebuild (see
+[Lab 01 — Edit & rebuild](../01-matmul-single-core/README.md#edit--rebuild)):
+
+```bash
+cd $TT_METAL_HOME
+./build_metal.sh --build-programming-examples
+tt-sim run metal_example_matmul_multi_core
+```
+
 ## Exercise
 
 - Shrink/grow the core grid the work is split over and re-run. How does the

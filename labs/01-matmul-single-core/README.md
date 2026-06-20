@@ -87,6 +87,50 @@ Focus on, in order:
    multiply-accumulate loop, `tile_regs_*` lifecycle.
 3. **Reader / writer kernels** — how tiles move DRAM ⇄ L1 through CBs.
 
+## Edit & rebuild
+
+All source for this lab lives under `$TT_METAL_HOME` (on the FULL image that
+is `/opt/tt-metal`):
+
+```
+$TT_METAL_HOME/tt_metal/programming_examples/matmul/matmul_single_core/
+├── matmul_single_core.cpp       # host: device setup, CBs, launch, verify
+└── kernels/
+    ├── compute/mm.cpp           # FPU matmul (mm_init, matmul_tiles)
+    └── dataflow/                # reader + writer kernels (DRAM ⇄ L1)
+```
+
+Open a file in VS Code:
+
+```bash
+code $TT_METAL_HOME/tt_metal/programming_examples/matmul/matmul_single_core/kernels/compute/mm.cpp
+```
+
+On the FULL image you can edit in place (`/opt/tt-metal` is owned by the
+`student` user). To keep the prebuilt tree pristine, copy the example first:
+
+```bash
+cp -r $TT_METAL_HOME/tt_metal/programming_examples/matmul/matmul_single_core \
+      ~/work/my-matmul-single-core
+```
+
+**What needs a rebuild?**
+
+| You changed | Rebuild needed? | Command |
+|---|---|---|
+| Kernel `.cpp` under `kernels/` | No — re-JITed on next run | `tt-sim run metal_example_matmul_single_core` |
+| Host `.cpp` (dimensions, CB config, core grid) | Yes | see below |
+
+After host changes:
+
+```bash
+cd $TT_METAL_HOME
+./build_metal.sh --build-programming-examples
+tt-sim run metal_example_matmul_single_core
+```
+
+Look for **Test Passed** and a PCC line near 1.0.
+
 ## Exercise
 
 Modify the compute kernel / dimensions and re-run:

@@ -73,6 +73,25 @@ Focus on:
 4. **DRAM read count** — confirm each input tile is now read from DRAM far
    fewer times than in Lab 02.
 
+## Edit & rebuild
+
+Source tree:
+
+```bash
+$TT_METAL_HOME/tt_metal/programming_examples/matmul/matmul_multicore_reuse_mcast/
+```
+
+The interesting edits are in the **reader kernels** (multicast / semaphores).
+Compare against Lab 02's reader while you work. Rebuild/run workflow is the
+same as Lab 01 — see
+[Edit & rebuild](../01-matmul-single-core/README.md#edit--rebuild):
+
+```bash
+cd $TT_METAL_HOME
+./build_metal.sh --build-programming-examples   # only if you changed host code
+tt-sim run metal_example_matmul_multicore_reuse_mcast
+```
+
 ## Exercise
 
 - Diff the reader kernel against Lab 02's. Where did the per-core DRAM reads
