@@ -4,7 +4,7 @@
 # Primary track (kernel programming, library-direct ttsim) prerequisites:
 #   1. the virtual Wormhole library libttsim_wh.so is present,
 #   2. the tt-sim helper is on PATH,
-#   3. tt-metal is provisioned/built (or tells you to run `tt-sim setup`).
+#   3. tt-metal is built (FULL image: already at /opt/tt-metal; light: tt-sim setup).
 #
 # Advanced track (QEMU + tt-kmd bring-up, labs 10-16) is checked too, but
 # only reported informationally - you don't need it for labs 01-03.
@@ -13,16 +13,39 @@ set -uo pipefail
 
 QEMU_PREFIX="${QEMU_PREFIX:-/opt/qemu}"
 TTSIM_DIR="${TTSIM_DIR:-/opt/ttsim}"
+WORK_TT_METAL="${WORK_ROOT:-$HOME/work}/tt-metal"
+PREBAKED_TT_METAL="/opt/tt-metal"
 export PATH="$QEMU_PREFIX/bin:$PATH"
 
 pass() { printf '  \033[32m[ ok ]\033[0m %s\n' "$1"; }
 fail() { printf '  \033[31m[FAIL]\033[0m %s\n' "$1"; FAILED=1; }
 info() { printf '  \033[36m[info]\033[0m %s\n' "$1"; }
 FAILED=0
+METAL_BUILT=0
+METAL_HOME=""
 
 ARCH="$(uname -m)"
 sfx=""; [[ "$ARCH" == aarch64 || "$ARCH" == arm64 ]] && sfx="_aarch64"
 WH_LIB="$TTSIM_DIR/libttsim_wh${sfx}.so"
+
+# Same resolution order as tt-sim: env -> /opt/tt-metal -> ~/work/tt-metal
+resolve_metal_home() {
+  if [[ -n "${TT_METAL_HOME:-}" && -d "$TT_METAL_HOME" ]]; then
+    echo "$TT_METAL_HOME"; return 0
+  fi
+  if [[ -d "$PREBAKED_TT_METAL" ]]; then
+    echo "$PREBAKED_TT_METAL"; return 0
+  fi
+  if [[ -d "$WORK_TT_METAL" ]]; then
+    echo "$WORK_TT_METAL"; return 0
+  fi
+  return 1
+}
+
+metal_is_built() {
+  local home="$1"
+  [[ -d "$home/build" ]] && compgen -G "$home/build/programming_examples/*" >/dev/null 2>&1
+}
 
 echo
 echo "== Primary track: kernel programming (library-direct ttsim) =="
@@ -42,13 +65,18 @@ else
   fail "tt-sim not found on PATH"
 fi
 
-# 3. tt-metal provisioning status (informational - `tt-sim setup` fixes it).
-echo
-if command -v tt-sim >/dev/null 2>&1; then
-  tt-sim status 2>&1 | sed 's/^/  /'
-  echo
-  info "FULL image: tt-metal should already be built at /opt/tt-metal."
-  info "Light image only: if status says NOT built, run:  tt-sim setup"
+# 3. tt-metal — the thing kernel labs actually need.
+if METAL_HOME="$(resolve_metal_home)" && metal_is_built "$METAL_HOME"; then
+  METAL_BUILT=1
+  pass "tt-metal built at $METAL_HOME"
+else
+  if [[ -n "$METAL_HOME" ]]; then
+    fail "tt-metal found at $METAL_HOME but not built yet"
+  else
+    fail "no tt-metal tree found"
+  fi
+  info "Light image only: run  tt-sim setup"
+  info "Or recreate the Codespace with the FULL devcontainer (tt-metal prebuilt)."
 fi
 
 # --- Advanced track (optional) --------------------------------------------
@@ -74,10 +102,10 @@ bh_lib="$TTSIM_DIR/libttsim_bh${sfx}.so"
 
 echo
 if [[ "$FAILED" == 0 ]]; then
-  if command -v tt-sim >/dev/null 2>&1 && tt-sim status 2>&1 | grep -q 'built'; then
+  if [[ "$METAL_BUILT" == 1 ]]; then
     printf '\033[1;32mPrimary-track checks passed.\033[0m tt-metal is ready — next: `ttlab 01`.\n'
   else
-    printf '\033[1;32mPrimary-track checks passed.\033[0m Next: `tt-sim setup` (light image only), then `ttlab 01`.\n'
+    printf '\033[1;32mEnvironment OK (simulator present).\033[0m Next: `tt-sim setup`, then `ttlab 01`.\n'
   fi
 else
   printf '\033[1;31mSome checks failed.\033[0m See labs/00-orientation/README.md troubleshooting.\n'

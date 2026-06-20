@@ -44,8 +44,11 @@ This prints a pass/fail line for each prerequisite of the kernel track:
 ```
   [ ok ] virtual Wormhole library present: libttsim_wh.so (...)
   [ ok ] tt-sim helper present
-  [ .. ] tt-metal: <built | NOT built yet — run 'tt-sim setup'>
+  [ ok ] tt-metal built at /opt/tt-metal
 ```
+
+On the **light** image the third line may be `[FAIL]` — run `tt-sim setup` once,
+or switch to the FULL devcontainer.
 
 It also checks the advanced-track tooling (the QEMU fork + the `ttsim` PCI
 device) and reports it as informational — you don't need it for labs 01–03.

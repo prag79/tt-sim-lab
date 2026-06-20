@@ -44,7 +44,7 @@ case "$cmd" in
 Available labs:
 
   Primary track - kernel programming on a virtual Wormhole (library-direct):
-    00     - orientation: verify the env; provision tt-metal (tt-sim setup)
+    00     - orientation: verify the env (tt-metal should already be built on FULL)
     01     - single-core matrix multiplication
     02     - multi-core matrix multiplication (SPMD across the Tensix grid)
     03     - multicast for data reuse in multi-core matmul
@@ -76,10 +76,10 @@ EOF
   01|01-matmul-single-core)
     prepare_workdir 01-matmul-single-core
     banner "Lab 01 - single-core matrix multiplication" 01-matmul-single-core
-    if [[ -n "${TT_METAL_HOME:-}" && -d "${TT_METAL_HOME}" ]]; then
-      echo "tt-metal already built (full image) — run:"
+    if [[ -d "${TT_METAL_HOME:-/opt/tt-metal}/build/programming_examples" ]]; then
+      echo "tt-metal is ready — run:"
     else
-      echo "Provision once with 'tt-sim setup', then run:"
+      echo "Light image: run 'tt-sim setup' once, then:"
     fi
     echo "  tt-sim run metal_example_matmul_single_core"
     exec bash
