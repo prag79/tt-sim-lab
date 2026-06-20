@@ -41,6 +41,11 @@ Same library-direct path as Lab 01 — slow-dispatch, results verified against
 a CPU golden reference. Expect it to be **slow** (the whole grid is
 simulated in software), but **correct**.
 
+See [Lab 01 — Understanding the output](../01-matmul-single-core/README.md#understanding-the-output)
+for how to read the timing line, `409600`, PCC, and **Test Passed**. The
+device/CPU ratio is usually **much larger** here than Lab 01 because more
+cores are simulated.
+
 > Exact binary names can drift between tt-metal versions. List what your
 > build produced with:
 > `ls $TT_METAL_HOME/build/programming_examples/ | grep matmul`

@@ -133,7 +133,8 @@ work interactively.
 
 See [`labs/MATMUL_GUIDE.md`](labs/MATMUL_GUIDE.md) for a **student walkthrough of
 the matmul source code** (all three labs) and an explanation of the test output
-(`409600`, PCC, Test Passed).
+(`409600`, PCC, Test Passed). Matmul runs also print **CPU vs Metalium timing**
+(device/CPU ratio — high on ttsim because emulation is slow; inverted on real silicon).
 
 These mirror the upstream
 [TT-Metalium matmul labs](https://github.com/tenstorrent/tt-metal/tree/main/docs/source/tt-metalium/tt_metal/labs/matmul).

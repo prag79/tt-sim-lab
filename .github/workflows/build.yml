@@ -9,6 +9,7 @@ on:
       - 'ttlab'
       - 'tt-guest'
       - 'tt-sim'
+      - 'scripts/**'
       - 'entrypoint.sh'
       - 'labs/**'
   workflow_dispatch:

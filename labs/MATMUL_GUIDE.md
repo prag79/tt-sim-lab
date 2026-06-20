@@ -268,10 +268,33 @@ reads were replaced by multicast.
 When you run any of the three examples successfully, you see something like:
 
 ```
+Timing — CPU golden: 842.315 ms | Metalium device: 45123.008 ms | device/CPU 53.57x
 Output vector of size 409600
 Metalium vs Golden -- PCC = 0.981743
 Test Passed
 ```
+
+The lab injects the **Timing** line via `scripts/patch-matmul-timing.py` (applied
+at `tt-sim setup` / image build, or manually with `tt-sim patch-timing`).
+
+### `Timing — CPU golden … | Metalium device … | device/CPU …x`
+
+Host-side wall clock using `std::chrono::steady_clock`:
+
+| Part | What is measured |
+|---|---|
+| **CPU golden** | `golden_matmul()` only — naive triple loop on the host CPU. |
+| **Metalium device** | Full device path: DRAM upload, kernel execution on the (simulated) chip, DRAM readback. |
+| **device/CPU ratio** | `device_ms / cpu_ms`. **> 1** means the device path took longer on this host. |
+
+**Important:** under **ttsim** (this lab), the ratio is usually **tens to hundreds** —
+software emulation of every Tensix core is slow. That does **not** mean Tenstorrent
+hardware is slow; on real silicon Metalium is typically **much faster** than this
+CPU golden for 640³ matmul. Use timing here to see *relative* changes (e.g. Lab 02
+vs Lab 03), not absolute accelerator performance.
+
+On real hardware, use the [device program profiler](https://docs.tenstorrent.com/tt-metal/latest/tt-metalium/tools/device_program_profiler.html)
+for kernel-level timing inside the chip.
 
 ### `Output vector of size 409600`
 

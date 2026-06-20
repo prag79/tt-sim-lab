@@ -15,6 +15,8 @@
 #   tt-sim build            (re)build tt-metal
 #   tt-sim env              print the env exports for the library-direct flow
 #   tt-sim run <example>    run a tt-metal programming example under ttsim
+#   tt-sim patch-timing     inject CPU vs device timing prints into matmul
+#                           examples and rebuild programming examples
 #   tt-sim shell            drop into a shell with the env already exported
 #   tt-sim status           show where tt-metal lives and whether it is built
 #
@@ -45,6 +47,26 @@ esac
 WH_LIB="$TTSIM_DIR/libttsim_wh${LIB_SUFFIX}.so"
 
 die() { echo "tt-sim: $*" >&2; exit 1; }
+
+# --- matmul timing patch (CPU vs Metalium wall clock in example output) ----
+
+resolve_patch_script() {
+  local script
+  for script in \
+    "/usr/local/share/tt-sim-lab/patch-matmul-timing.py" \
+    "$(dirname "$0")/scripts/patch-matmul-timing.py"; do
+    [[ -f "$script" ]] && { echo "$script"; return 0; }
+  done
+  return 1
+}
+
+apply_matmul_timing_patches() {
+  local home="$1"
+  local script
+  script="$(resolve_patch_script)" || \
+    die "patch-matmul-timing.py not found (rebuild the lab image or run from the git repo)"
+  python3 "$script" "$home"
+}
 
 # --- locate the tt-metal tree ----------------------------------------------
 
@@ -95,6 +117,7 @@ wire_soc_descriptor() {
 
 cmd_build() {
   local home="$1"
+  apply_matmul_timing_patches "$home" || true
   # tt-metal ships its own dependency installer; run it best-effort so a fresh
   # tree builds on the minimal lab image (student has NOPASSWD sudo).
   if [[ -x "$home/install_dependencies.sh" ]]; then
@@ -136,6 +159,15 @@ cmd_setup() {
   echo
   echo "==> Ready. Library-direct ttsim is wired up:"
   cmd_env "$home"
+}
+
+cmd_patch_timing() {
+  local home; home="$(resolve_home)" || die "no tt-metal tree; run 'tt-sim setup' first"
+  echo "==> Patching matmul examples to print CPU vs Metalium timing..."
+  apply_matmul_timing_patches "$home"
+  echo "==> Rebuilding programming examples..."
+  ( cd "$home" && TT_METAL_HOME="$home" ./build_metal.sh --build-programming-examples )
+  echo "==> Done. Re-run e.g.: tt-sim run metal_example_matmul_single_core"
 }
 
 cmd_env() {
@@ -205,14 +237,15 @@ cmd_status() {
 
 cmd="${1:-status}"; shift || true
 case "$cmd" in
-  setup)   cmd_setup "$@" ;;
-  build)   home="$(resolve_home)" || die "no tt-metal tree; run 'tt-sim setup' first"; cmd_build "$home" ;;
-  env)     cmd_env "$@" ;;
-  run)     cmd_run "$@" ;;
-  shell)   cmd_shell "$@" ;;
-  status)  cmd_status "$@" ;;
+  setup)        cmd_setup "$@" ;;
+  build)        home="$(resolve_home)" || die "no tt-metal tree; run 'tt-sim setup' first"; cmd_build "$home" ;;
+  patch-timing) cmd_patch_timing "$@" ;;
+  env)          cmd_env "$@" ;;
+  run)          cmd_run "$@" ;;
+  shell)        cmd_shell "$@" ;;
+  status)       cmd_status "$@" ;;
   -h|--help|help)
-    sed -n '2,28p' "$0" | sed 's/^# \{0,1\}//'
+    sed -n '2,29p' "$0" | sed 's/^# \{0,1\}//'
     ;;
-  *) die "unknown subcommand '$cmd' (try: setup|build|env|run|shell|status)" ;;
+  *) die "unknown subcommand '$cmd' (try: setup|build|patch-timing|env|run|shell|status)" ;;
 esac

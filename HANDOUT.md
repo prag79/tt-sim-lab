@@ -302,6 +302,7 @@ Codespace config:   FULL (recommended) — tt-metal prebuilt, no setup
 Light image only:   tt-sim setup                         (one-time heavy build)
 Status:             tt-sim status
 Run a kernel:       tt-sim run metal_example_matmul_single_core
+Timing in output:   tt-sim patch-timing   # once, if Timing line missing (older FULL image)
 Other matmuls:      tt-sim run metal_example_matmul_multi_core
                     tt-sim run metal_example_matmul_multicore_reuse_mcast
 List examples:      ls $TT_METAL_HOME/build/programming_examples/ | grep matmul

@@ -46,7 +46,10 @@ tt-sim run metal_example_matmul_multicore_reuse_mcast
 
 Functionally correct under ttsim (bit-exact golden check); performance is
 not meaningful under software simulation — you are here to learn the
-*technique*, not to benchmark.
+*technique*, not to benchmark. Compare **PCC** across Lab 02 and Lab 03;
+timing ratios are for curiosity only on ttsim.
+
+See [Lab 01 — Understanding the output](../01-matmul-single-core/README.md#understanding-the-output).
 
 <details>
 <summary>Light image only — run tt-sim setup first (skip on FULL)</summary>

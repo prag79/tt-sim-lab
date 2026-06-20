@@ -58,9 +58,11 @@ COPY --chown=student:student labs/ /labs/
 COPY ttlab          /usr/local/bin/ttlab
 COPY tt-guest       /usr/local/bin/tt-guest
 COPY tt-sim         /usr/local/bin/tt-sim
+COPY scripts/       /usr/local/share/tt-sim-lab/
 COPY entrypoint.sh  /usr/local/bin/entrypoint.sh
 RUN chmod +x /usr/local/bin/ttlab /usr/local/bin/tt-guest \
-             /usr/local/bin/tt-sim /usr/local/bin/entrypoint.sh
+             /usr/local/bin/tt-sim /usr/local/bin/entrypoint.sh \
+             /usr/local/share/tt-sim-lab/patch-matmul-timing.py
 
 # --- (optional) prebuild tt-metal for the primary kernel track -------------
 # The primary labs (01-03) run tt-metal against the virtual chip via the
@@ -86,6 +88,7 @@ RUN if [ "$PREBUILD_TT_METAL" = "1" ]; then \
         git checkout "${TT_METAL_REF}"; \
         git submodule update --init --recursive; \
         [ -x ./install_dependencies.sh ] && ./install_dependencies.sh || true; \
+        python3 /usr/local/share/tt-sim-lab/patch-matmul-timing.py /opt/tt-metal; \
         TT_METAL_HOME=/opt/tt-metal ./build_metal.sh --build-programming-examples; \
         cp tt_metal/soc_descriptors/wormhole_b0_80_arch.yaml \
            "${TTSIM_DIR}/soc_descriptor.yaml"; \
