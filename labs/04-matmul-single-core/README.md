@@ -1,9 +1,13 @@
-# Lab 01 — Single-core matrix multiplication
+# Lab 04 — Single-core matrix multiplication
 
 **Time:** ~45–60 min · **Backend:** library-direct ttsim (virtual Wormhole)
 · **Difficulty:** intermediate
 
-This is the first kernel-programming lab. You will run and study a **real
+**Prerequisites:** [`ttlab 01`](../01-elementwise-binary/README.md) (reader/compute/writer
++ circular buffers). [`ttlab 02`](../02-multicast-intro/README.md) is recommended
+before Lab 06 but not required here.
+
+This is the **first matmul** lab. You will run and study a **real
 TT-Metalium matrix-multiplication program** on a single Tensix core —
 against a *virtual* Wormhole chip, with no QEMU, no driver, and no guest VM
 in the way. The simulator (`libttsim_wh.so`) is loaded directly by tt-metal
@@ -17,8 +21,8 @@ RISC-V/compute engines with results **bit-exact to silicon**.
 > programming example. Read those for the full theory; this README is the
 > "run it on the virtual chip" recipe plus the concepts to focus on.
 >
-> **Deep dive:** [`MATMUL_GUIDE.md`](../MATMUL_GUIDE.md) — source walkthrough
-> for all three labs and what the test output means (`409600`, PCC, Test Passed).
+> **Deep dive:** [`MATMUL_GUIDE.md`](../MATMUL_GUIDE.md) — source walkthrough,
+> test output (`409600`, PCC, timing), and [§9 API glossary](../MATMUL_GUIDE.md#9-api-glossary-source--docs).
 
 ## Concepts this lab teaches
 
@@ -183,7 +187,7 @@ Modify the compute kernel / dimensions and re-run:
 - The library-direct ttsim flow lets you iterate on kernels with no
   driver/PCIe/boot overhead — ideal for learning.
 
-Next: [`ttlab 02`](../02-matmul-multi-core/README.md) — spread this work
+Next: [`ttlab 05`](../05-matmul-multi-core/README.md) — spread this work
 across the Tensix grid.
 
 ---

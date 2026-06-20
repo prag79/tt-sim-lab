@@ -1,9 +1,9 @@
-# Lab 02 — Multi-core matrix multiplication
+# Lab 05 — Multi-core matrix multiplication
 
 **Time:** ~45–60 min · **Backend:** library-direct ttsim (virtual Wormhole)
 · **Difficulty:** intermediate
 
-Lab 01 ran matmul on a single Tensix core. A Wormhole has a **grid** of
+Lab 04 ran matmul on a single Tensix core. A Wormhole has a **grid** of
 them. In this lab you scale the same computation across the grid and learn
 the data-parallel (SPMD) programming model that makes Tenstorrent hardware
 fast.
@@ -27,7 +27,7 @@ fast.
 - **DRAM as the shared source.** In this first multi-core version every core
   independently reads the input tiles it needs from DRAM. That works and is
   simple — but notice the redundant DRAM traffic. Removing it is the whole
-  point of Lab 03.
+  point of Lab 06.
 
 ## Run it
 
@@ -37,13 +37,13 @@ On the **FULL** image, tt-metal is already built — run the example directly:
 tt-sim run metal_example_matmul_multi_core
 ```
 
-Same library-direct path as Lab 01 — slow-dispatch, results verified against
+Same library-direct path as Lab 04 — slow-dispatch, results verified against
 a CPU golden reference. Expect it to be **slow** (the whole grid is
 simulated in software), but **correct**.
 
-See [Lab 01 — Understanding the output](../01-matmul-single-core/README.md#understanding-the-output)
+See [Lab 04 — Understanding the output](../04-matmul-single-core/README.md#understanding-the-output)
 for how to read the timing line, `409600`, PCC, and **Test Passed**. The
-device/CPU ratio is usually **much larger** here than Lab 01 because more
+device/CPU ratio is usually **much larger** here than Lab 04 because more
 cores are simulated.
 
 > Exact binary names can drift between tt-metal versions. List what your
@@ -54,7 +54,7 @@ cores are simulated.
 <summary>Light image only — run tt-sim setup first (skip on FULL)</summary>
 
 ```bash
-tt-sim setup        # once, if not already done (see Lab 01)
+tt-sim setup        # once, if not already done (see Lab 04)
 tt-sim run metal_example_matmul_multi_core
 ```
 
@@ -66,7 +66,7 @@ tt-sim run metal_example_matmul_multi_core
 ls $TT_METAL_HOME/tt_metal/programming_examples/matmul/matmul_multi_core/
 ```
 
-Compare it against the single-core version from Lab 01 and find the deltas:
+Compare it against the single-core version from Lab 04 and find the deltas:
 
 1. **Core range.** A `CoreRange`/`CoreRangeSet` instead of a single
    `CoreCoord{0,0}`.
@@ -77,7 +77,7 @@ Compare it against the single-core version from Lab 01 and find the deltas:
 
 ## Edit & rebuild
 
-Source tree (same layout as Lab 01, different example):
+Source tree (same layout as Lab 04, different example):
 
 ```bash
 $TT_METAL_HOME/tt_metal/programming_examples/matmul/matmul_multi_core/
@@ -86,7 +86,7 @@ $TT_METAL_HOME/tt_metal/programming_examples/matmul/matmul_multi_core/
 Focus your edits on the **host** file — that is where core ranges, work
 splitting, and per-core runtime args live. Kernel changes under `kernels/`
 are re-JITed on the next run; host changes need a rebuild (see
-[Lab 01 — Edit & rebuild](../01-matmul-single-core/README.md#edit--rebuild)):
+[Lab 04 — Edit & rebuild](../04-matmul-single-core/README.md#edit--rebuild)):
 
 ```bash
 cd $TT_METAL_HOME
@@ -99,7 +99,7 @@ tt-sim run metal_example_matmul_multi_core
 - Shrink/grow the core grid the work is split over and re-run. How does the
   output partitioning change?
 - Identify the redundant DRAM reads: for a given input tile of `A`, how many
-  different cores read it from DRAM? Keep this number in mind for Lab 03.
+  different cores read it from DRAM? Keep this number in mind for Lab 06.
 
 ## What you just learned
 
@@ -107,7 +107,7 @@ tt-sim run metal_example_matmul_multi_core
   core grid and feed each core the right runtime args.
 - The kernel binary is written once and reused across all cores (SPMD).
 - Naive multi-core matmul re-reads input data from DRAM many times — a
-  bottleneck Lab 03 fixes with multicast.
+  bottleneck Lab 06 fixes with multicast.
 
-Next: [`ttlab 03`](../03-matmul-multicast/README.md) — reuse data with
+Next: [`ttlab 06`](../06-matmul-multicast/README.md) — reuse data with
 multicast to kill the redundant DRAM traffic.

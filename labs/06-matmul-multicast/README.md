@@ -1,14 +1,17 @@
-# Lab 03 — Multicast for data reuse in multi-core matmul
+# Lab 06 — Multicast for data reuse in multi-core matmul
 
 **Time:** ~60–90 min · **Backend:** library-direct ttsim (virtual Wormhole)
 · **Difficulty:** advanced
 
-Lab 02 split matmul across the grid but had every core re-read its inputs
+Lab 05 split matmul across the grid but had every core re-read its inputs
 from DRAM. In a tiled matmul, whole **rows of A** and **columns of B** are
 shared by many output tiles — so that DRAM traffic is mostly redundant. This
 lab uses the NoC (network-on-chip) to **read once and multicast** shared
 tiles to the cores that need them, the key optimization that makes
 multi-core matmul actually fast.
+
+**Prerequisite:** [`ttlab 02`](../02-multicast-intro/README.md) introduces the
+same multicast/semaphore ideas in a smaller example.
 
 > Mirrors the upstream
 > [TT-Metalium Lab 3: Multicast for Improved Data Reuse](https://docs.tenstorrent.com/tt-metal/latest/tt-metalium/index.html)
@@ -46,16 +49,16 @@ tt-sim run metal_example_matmul_multicore_reuse_mcast
 
 Functionally correct under ttsim (bit-exact golden check); performance is
 not meaningful under software simulation — you are here to learn the
-*technique*, not to benchmark. Compare **PCC** across Lab 02 and Lab 03;
+*technique*, not to benchmark. Compare **PCC** across Lab 05 and Lab 06;
 timing ratios are for curiosity only on ttsim.
 
-See [Lab 01 — Understanding the output](../01-matmul-single-core/README.md#understanding-the-output).
+See [Lab 04 — Understanding the output](../04-matmul-single-core/README.md#understanding-the-output).
 
 <details>
 <summary>Light image only — run tt-sim setup first (skip on FULL)</summary>
 
 ```bash
-tt-sim setup        # once, if not already done (see Lab 01)
+tt-sim setup        # once, if not already done (see Lab 04)
 tt-sim run metal_example_matmul_multicore_reuse_mcast
 ```
 
@@ -76,7 +79,7 @@ Focus on:
 3. **The reader kernel** — the `noc_async_write_multicast` (and matching
    wait) calls that replace per-core DRAM reads.
 4. **DRAM read count** — confirm each input tile is now read from DRAM far
-   fewer times than in Lab 02.
+   fewer times than in Lab 05.
 
 ## Edit & rebuild
 
@@ -87,9 +90,9 @@ $TT_METAL_HOME/tt_metal/programming_examples/matmul/matmul_multicore_reuse_mcast
 ```
 
 The interesting edits are in the **reader kernels** (multicast / semaphores).
-Compare against Lab 02's reader while you work. Rebuild/run workflow is the
-same as Lab 01 — see
-[Edit & rebuild](../01-matmul-single-core/README.md#edit--rebuild):
+Compare against Lab 05's reader while you work. Rebuild/run workflow is the
+same as Lab 04 — see
+[Edit & rebuild](../04-matmul-single-core/README.md#edit--rebuild):
 
 ```bash
 cd $TT_METAL_HOME
@@ -99,7 +102,7 @@ tt-sim run metal_example_matmul_multicore_reuse_mcast
 
 ## Exercise
 
-- Diff the reader kernel against Lab 02's. Where did the per-core DRAM reads
+- Diff the reader kernel against Lab 05's. Where did the per-core DRAM reads
   go, and what replaced them?
 - Trace one multicast: which core reads the tile, which cores receive it,
   and which semaphore tells the receivers it is safe to consume?

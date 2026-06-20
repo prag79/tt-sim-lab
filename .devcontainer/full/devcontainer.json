@@ -22,7 +22,7 @@
     }
   },
 
-  "postAttachCommand": "printf '\\n\\033[1;36mtt-sim lab ready (FULL: tt-metal prebuilt).\\033[0m tt-metal already built — skip tt-sim setup; start: ttlab 00, then ttlab 01\\n\\n' && ttlab list",
+  "postAttachCommand": "printf '\\n\\033[1;36mtt-sim lab ready (FULL: tt-metal prebuilt).\\033[0m Start: ttlab 00, then ttlab 01 (elementwise intro)\\n\\n' && ttlab list",
 
   "hostRequirements": {
     "cpus": 4,

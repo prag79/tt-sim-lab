@@ -67,7 +67,7 @@ run tt-metal through the full silicon-faithful path.
 
 | Track | Backend | Helper | What it's for | Labs |
 |---|---|---|---|---|
-| **Primary — kernel programming** | **library-direct** (`TT_METAL_SIMULATOR` → `libttsim_wh.so`) | `tt-sim` | Write/run tt-metal matmul kernels on a virtual Wormhole. No QEMU, no driver, no guest VM — light and fast. | **00–03** |
+| **Primary — kernel programming** | **library-direct** (`TT_METAL_SIMULATOR` → `libttsim_wh.so`) | `tt-sim` | TT-Metalium intro examples, then matmul kernels on a virtual Wormhole. No QEMU, no driver, no guest VM. | **00–06** |
 | Advanced — bring-up (optional) | QEMU + `tt-kmd` | `tt-guest` | See how the chip appears to a real OS as a PCIe device; load the real driver; run tt-metal through the full PCIe path. | 10–16 |
 
 Most students only need the **primary track**. Start there; dip into the
@@ -83,13 +83,19 @@ configuration). tt-metal is already built at `/opt/tt-metal` — **no
 ```bash
 ttlab list              # see available exercises
 ttlab 00                # orientation: verify env (tt-metal should already be built)
-ttlab 01                # single-core matrix multiplication
+ttlab 01                # elementwise add — Metalium intro (ttnn/examples)
+tt-sim run example_lab_eltwise_binary
+ttlab 02                # multicast intro on the NoC
+tt-sim run example_lab_multicast
+ttlab 04                # single-core matrix multiplication
 tt-sim run metal_example_matmul_single_core
-ttlab 02                # multi-core matrix multiplication (SPMD across the grid)
+ttlab 05                # multi-core matmul (SPMD)
 tt-sim run metal_example_matmul_multi_core
-ttlab 03                # multicast for data reuse in multi-core matmul
+ttlab 06                # multicast matmul (data reuse)
 tt-sim run metal_example_matmul_multicore_reuse_mcast
 ```
+
+(`ttlab 03` is an optional TTNN high-level API demo — skip if you like.)
 
 Primary-track rhythm on the **FULL** image: `ttlab NN` for the lab README, then
 `tt-sim run <example>` — no guest, no SSH, no build step.
@@ -127,17 +133,19 @@ work interactively.
 | Lab | What it teaches | Source |
 |---|---|---|
 | `ttlab 00` | Orientation: verify the env (`tt-sim status` should show tt-metal **built**) | [`labs/00-orientation/`](labs/00-orientation/) |
-| `ttlab 01` | Single-core matmul: tiles, reader/compute/writer kernels, circular buffers, the matmul FPU API | [`labs/01-matmul-single-core/`](labs/01-matmul-single-core/) |
-| `ttlab 02` | Multi-core matmul: SPMD work-splitting across the Tensix grid, per-core runtime args | [`labs/02-matmul-multi-core/`](labs/02-matmul-multi-core/) |
-| `ttlab 03` | Multicast: NoC data reuse to kill redundant DRAM reads in multi-core matmul | [`labs/03-matmul-multicast/`](labs/03-matmul-multicast/) |
+| `ttlab 01` | **Elementwise add** — reader/compute/writer, CBs ([ttnn/examples/lab_eltwise_binary](https://github.com/tenstorrent/tt-metal/tree/main/ttnn/examples/lab_eltwise_binary)) | [`labs/01-elementwise-binary/`](labs/01-elementwise-binary/) |
+| `ttlab 02` | **Multicast intro** — NoC broadcast + semaphores ([ttnn/examples/lab_multicast](https://github.com/tenstorrent/tt-metal/tree/main/ttnn/examples/lab_multicast)) | [`labs/02-multicast-intro/`](labs/02-multicast-intro/) |
+| `ttlab 03` | *(Optional)* TTNN high-level `add` — no custom kernels | [`labs/03-ttnn-add/`](labs/03-ttnn-add/) |
+| `ttlab 04` | Single-core matmul: tiles, matmul FPU API | [`labs/04-matmul-single-core/`](labs/04-matmul-single-core/) |
+| `ttlab 05` | Multi-core matmul: SPMD, per-core runtime args | [`labs/05-matmul-multi-core/`](labs/05-matmul-multi-core/) |
+| `ttlab 06` | Multicast matmul: NoC data reuse | [`labs/06-matmul-multicast/`](labs/06-matmul-multicast/) |
 
-See [`labs/MATMUL_GUIDE.md`](labs/MATMUL_GUIDE.md) for a **student walkthrough of
-the matmul source code** (all three labs) and an explanation of the test output
-(`409600`, PCC, Test Passed). Matmul runs also print **CPU vs Metalium timing**
-(device/CPU ratio — high on ttsim because emulation is slow; inverted on real silicon).
+Intro labs **01–02** match the upstream [Lab 1 tutorial](https://docs.tenstorrent.com/tt-metal/latest/tt-metalium/tt_metal/labs/matmul/lab1/lab1.html)
+foundation (eltwise before matmul). Matmul labs **04–06** mirror the upstream
+[matmul labs](https://github.com/tenstorrent/tt-metal/tree/main/docs/source/tt-metalium/tt_metal/labs/matmul).
 
-These mirror the upstream
-[TT-Metalium matmul labs](https://github.com/tenstorrent/tt-metal/tree/main/docs/source/tt-metalium/tt_metal/labs/matmul).
+See [`labs/MATMUL_GUIDE.md`](labs/MATMUL_GUIDE.md) for matmul source walkthrough
+(labs 04–06), test output (`409600`, PCC, timing), and [§9 API glossary](labs/MATMUL_GUIDE.md#9-api-glossary-source--docs).
 On the **FULL** image, tt-metal is prebuilt — students run examples immediately.
 On the **light** image, `tt-sim setup` is the one heavy step (build once).
 Wormhole needs [tt-metal PR #46871](https://github.com/tenstorrent/tt-metal/pull/46871),

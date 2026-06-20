@@ -65,7 +65,7 @@ RUN chmod +x /usr/local/bin/ttlab /usr/local/bin/tt-guest \
              /usr/local/share/tt-sim-lab/patch-matmul-timing.py
 
 # --- (optional) prebuild tt-metal for the primary kernel track -------------
-# The primary labs (01-03) run tt-metal against the virtual chip via the
+# The primary labs (01-06) run tt-metal against the virtual chip via the
 # library-direct flow. tt-metal itself is large to BUILD (tens of GB, long
 # compile) though light to RUN. Baking it in gives students a zero-setup
 # start, but it bloats the image well past a free Codespace's storage quota

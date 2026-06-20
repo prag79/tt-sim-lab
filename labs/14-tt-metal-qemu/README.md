@@ -104,7 +104,7 @@ cp $TT_METAL_HOME/tt_metal/soc_descriptors/wormhole_b0_80_arch.yaml \
    $(dirname $TT_METAL_SIMULATOR)/soc_descriptor.yaml
 ```
 
-The `tt-sim` helper wraps exactly this (see [`ttlab 01`](../01-matmul-single-core/README.md)).
+The `tt-sim` helper wraps exactly this (see [`ttlab 04`](../04-matmul-single-core/README.md)).
 The QEMU flow in *this* lab is the more faithful one: it exercises the real
 PCIe + KMD path, which is what you want when validating drivers, firmware, or
 anything that touches `/dev/tenstorrent`.

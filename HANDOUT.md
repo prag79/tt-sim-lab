@@ -8,9 +8,10 @@ browser tab, with **nothing installed on your laptop**.
 
 The course has two tracks:
 
-- **Primary — kernel programming (labs 00–03).** tt-metal talks straight to
-  the virtual chip (`libttsim_wh.so`) via the library-direct flow. No QEMU,
-  no driver, no guest VM. This is where you start.
+- **Primary — kernel programming (labs 00–06).** Start with
+  [ttnn/examples](https://github.com/tenstorrent/tt-metal/tree/main/ttnn/examples)
+  (elementwise add, multicast intro), then matrix multiplication. tt-metal talks
+  straight to the virtual chip (`libttsim_wh.so`) via the library-direct flow.
 - **Advanced — bring-up (labs 10–16, optional).** Boot Linux inside QEMU,
   attach a virtual Wormhole/Blackhole over (virtual) PCIe, load the real
   Tenstorrent kernel driver, watch `/dev/tenstorrent/0` appear, and read the
@@ -62,7 +63,7 @@ internals going in — the labs teach the QEMU parts.
 
 ### 1.4 Familiarity with basic PCIe / device concepts (advanced track only)
 
-The **primary kernel track (labs 00–03) does not need any of this** — it
+The **primary kernel track (labs 00–06) does not need any of this** — it
 never touches PCIe or a driver. The following is background for the
 **optional advanced track (labs 10–16)**. You'll get much more out of those
 labs if you already understand, at a hand-wave level:
@@ -142,23 +143,28 @@ tt-sim status       # should report "built"
 > On a fresh free Codespace, run it on a larger machine type the first time;
 > the result lives in `~/work/tt-metal` and survives stop/start.
 
-Then run the single-core matmul on the virtual Wormhole:
+Then run the Metalium intro example on the virtual Wormhole:
 
 ```bash
-ttlab 01            # opens the lab (its README + the run command)
-tt-sim run metal_example_matmul_single_core
+ttlab 01            # opens the lab README
+tt-sim run example_lab_eltwise_binary
 ```
 
-A PASS means a real tt-metal kernel just executed on the simulated Tensix
-core and matched a CPU golden reference. Your environment is healthy.
+Expect **`Test Passed`**. Then continue 02 → 04 → 05 → 06 (03 is optional).
+
+For matmul verification (Lab 04+):
+
+```bash
+tt-sim run metal_example_matmul_single_core
+```
 
 ## 3. The exercises
 
 Each lab has its own detailed `README.md`. Do the **primary track in order**
 — the labs build on each other. The advanced track is optional.
 
-For a **unified source-code walkthrough** (host, kernels, CBs, and how to
-read `Output vector of size 409600` / PCC / Test Passed), see
+For a **unified matmul source-code walkthrough** (labs 04–06: host, kernels,
+CBs, and how to read `409600` / PCC / Test Passed), see
 [`labs/MATMUL_GUIDE.md`](labs/MATMUL_GUIDE.md).
 
 ### Primary track — kernel programming (library-direct ttsim)
@@ -166,9 +172,12 @@ read `Output vector of size 409600` / PCC / Test Passed), see
 | Lab | Time | What you'll do | Detailed README |
 |---|---|---|---|
 | **00** | ~5–10 min | Verify the env (`tt-sim status` should show tt-metal **built** on FULL). | [`labs/00-orientation/README.md`](labs/00-orientation/README.md) |
-| **01** | ~45–60 min | Single-core matmul: tiles, reader/compute/writer kernels, circular buffers, the matmul FPU API. | [`labs/01-matmul-single-core/README.md`](labs/01-matmul-single-core/README.md) |
-| **02** | ~45–60 min | Multi-core matmul: split work across the Tensix grid (SPMD), per-core runtime args. | [`labs/02-matmul-multi-core/README.md`](labs/02-matmul-multi-core/README.md) |
-| **03** | ~60–90 min | Multicast: reuse data over the NoC to cut redundant DRAM reads. | [`labs/03-matmul-multicast/README.md`](labs/03-matmul-multicast/README.md) |
+| **01** | ~45–60 min | Elementwise add: Metalium intro (reader/compute/writer, CBs) — [ttnn/examples/lab_eltwise_binary](https://github.com/tenstorrent/tt-metal/tree/main/ttnn/examples/lab_eltwise_binary). | [`labs/01-elementwise-binary/README.md`](labs/01-elementwise-binary/README.md) |
+| **02** | ~45–60 min | Multicast intro: NoC broadcast + semaphores — [ttnn/examples/lab_multicast](https://github.com/tenstorrent/tt-metal/tree/main/ttnn/examples/lab_multicast). | [`labs/02-multicast-intro/README.md`](labs/02-multicast-intro/README.md) |
+| **03** | ~15–20 min | *(Optional)* TTNN high-level add — [ttnn/examples/add](https://github.com/tenstorrent/tt-metal/tree/main/ttnn/examples/add). | [`labs/03-ttnn-add/README.md`](labs/03-ttnn-add/README.md) |
+| **04** | ~45–60 min | Single-core matmul: tiles, circular buffers, `matmul_tiles`. | [`labs/04-matmul-single-core/README.md`](labs/04-matmul-single-core/README.md) |
+| **05** | ~45–60 min | Multi-core matmul: SPMD, per-core runtime args. | [`labs/05-matmul-multi-core/README.md`](labs/05-matmul-multi-core/README.md) |
+| **06** | ~60–90 min | Multicast matmul: reuse data over the NoC. | [`labs/06-matmul-multicast/README.md`](labs/06-matmul-multicast/README.md) |
 
 Primary-track rhythm on the **FULL** image: `tt-sim run <example>` — no setup,
 no guest, no SSH. On the **light** image only: `tt-sim setup` once first.
@@ -228,7 +237,7 @@ git remote -v
 git checkout -b my-experiments
 
 # 3. Copy any lab edits back into the tracked tree:
-cp -ru ~/work/01-matmul-single-core/.  labs/01-matmul-single-core/
+cp -ru ~/work/04-matmul-single-core/.  labs/04-matmul-single-core/
 # ...repeat for any lab you changed.
 
 # 4. Commit and push to YOUR fork:
@@ -301,11 +310,14 @@ Self-test:          ttlab 00                             env check, no boot
 Codespace config:   FULL (recommended) — tt-metal prebuilt, no setup
 Light image only:   tt-sim setup                         (one-time heavy build)
 Status:             tt-sim status
-Run a kernel:       tt-sim run metal_example_matmul_single_core
+Run intro examples: tt-sim run example_lab_eltwise_binary
+                    tt-sim run example_lab_multicast
+Run matmul:         tt-sim run metal_example_matmul_single_core
 Timing in output:   tt-sim patch-timing   # once, if Timing line missing (older FULL image)
 Other matmuls:      tt-sim run metal_example_matmul_multi_core
                     tt-sim run metal_example_matmul_multicore_reuse_mcast
-List examples:      ls $TT_METAL_HOME/build/programming_examples/ | grep matmul
+List examples:      ls $TT_METAL_HOME/build/ttnn/examples/
+                    ls $TT_METAL_HOME/build/programming_examples/ | grep matmul
 Hand-run env:       eval "$(tt-sim env)"   |   tt-sim shell
 
 -- Advanced track: QEMU + tt-kmd bring-up (optional) --

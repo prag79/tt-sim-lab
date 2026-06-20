@@ -12,12 +12,15 @@ each:
 
 | Track | Backend | What it's for | Labs |
 |---|---|---|---|
-| **Primary — kernel programming** | **library-direct** (`TT_METAL_SIMULATOR`) | Learn to write/run tt-metal kernels. tt-metal loads `libttsim_wh.so` directly — no QEMU, no driver, no guest VM. Fast and light. | **01 → 03** |
+| **Primary — kernel programming** | **library-direct** (`TT_METAL_SIMULATOR`) | Learn Metalium via [ttnn/examples](https://github.com/tenstorrent/tt-metal/tree/main/ttnn/examples), then matmul. No QEMU, no driver, no guest VM. Fast and light. | **01 → 06** |
 | Advanced — bring-up | QEMU + `tt-kmd` | See how the chip appears to a real OS as a PCIe device. Boots Linux under the ttsim QEMU fork, loads the real driver, surfaces `/dev/tenstorrent/0`. Heavy. | 10 → 16 |
 
-You are starting the **primary track**. The matmul labs (01–03) take you
-from single-core → multi-core → multicast matrix multiplication, the classic
-on-ramp to Tensix kernel programming.
+You are starting the **primary track**. Do labs **in order**:
+
+1. **01** — elementwise add ([`ttnn/examples/lab_eltwise_binary`](https://github.com/tenstorrent/tt-metal/tree/main/ttnn/examples/lab_eltwise_binary))
+2. **02** — multicast intro ([`ttnn/examples/lab_multicast`](https://github.com/tenstorrent/tt-metal/tree/main/ttnn/examples/lab_multicast))
+3. **03** — *(optional)* TTNN high-level add
+4. **04–06** — single-core → multi-core → multicast **matmul**
 
 ## How the library-direct backend works
 
@@ -51,7 +54,7 @@ On the **light** image the third line may be `[FAIL]` — run `tt-sim setup` onc
 or switch to the FULL devcontainer.
 
 It also checks the advanced-track tooling (the QEMU fork + the `ttsim` PCI
-device) and reports it as informational — you don't need it for labs 01–03.
+device) and reports it as informational — you don't need it for labs 01–06.
 
 ## Provision tt-metal (one time)
 
@@ -78,7 +81,7 @@ tt-sim status       # confirm it reports "built"
 
 - This course teaches tt-metal **kernel programming** on a virtual Wormhole.
 - The **library-direct** flow (`TT_METAL_SIMULATOR`) is the light, fast
-  backend used by labs 01–03 — no QEMU/driver/boot.
+  backend used by labs 01–06 — no QEMU/driver/boot.
 - The QEMU + `tt-kmd` **bring-up** story is a separate, optional advanced
   track (labs 10–16) for when you care about the driver/PCIe layer itself.
 
@@ -90,5 +93,5 @@ tt-sim status       # confirm it reports "built"
 | `tt-sim: command not found` | Open a new terminal, or run `/usr/local/bin/tt-sim status`. |
 | `tt-sim setup` build is huge / slow | Expected on a fresh tree. Use a larger machine type for the first build; the result persists in `~/work/tt-metal`. |
 
-Next: [`ttlab 01`](../01-matmul-single-core/README.md) — single-core matmul
-on the virtual Wormhole.
+Next: [`ttlab 01`](../01-elementwise-binary/README.md) — elementwise add
+(Metalium intro).

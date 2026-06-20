@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # /usr/local/bin/ttlab - dispatcher for the ttsim labs.
-# Usage: ttlab {list|00|01|02|03|10|11|12|13|14|15|16|setup|ssh|stop|shell}
+# Usage: ttlab {list|00|01|...|06|10|...|16|setup|ssh|stop|shell}
 #
 # On first run of `ttlab NN`, the canonical (root-owned, image-baked) lab dir
 # under $LABS_ROOT is mirrored into $WORK_ROOT/<lab-name>/ so the student can
@@ -8,12 +8,9 @@
 # idempotent: re-running won't clobber edits but pulls in new upstream files.
 #
 # Two tracks:
-#   Primary (kernel programming)  01-03  - run real tt-metal matmul programs on
-#       a virtual Wormhole via the *library-direct* flow (the `tt-sim` helper);
-#       no QEMU, no driver, no guest VM.
-#   Advanced (bring-up, optional) 10-16  - boot Linux under the ttsim QEMU fork,
-#       attach a virtual chip, load the real tt-kmd driver, inspect the device,
-#       and run tt-metal through the full PCIe path (the `tt-guest` helper).
+#   Primary (kernel programming)  00-06  - TT-Metalium on a virtual Wormhole
+#       via the library-direct flow (`tt-sim`); intro examples then matmul.
+#   Advanced (bring-up, optional) 10-16  - QEMU + tt-kmd (the `tt-guest` helper).
 
 set -euo pipefail
 
@@ -36,6 +33,14 @@ banner() {
   echo
 }
 
+metal_ready_hint() {
+  if [[ -d "${TT_METAL_HOME:-/opt/tt-metal}/build" ]]; then
+    echo "tt-metal is ready — run:"
+  else
+    echo "Light image: run 'tt-sim setup' once, then:"
+  fi
+}
+
 cmd="${1:-list}"; shift || true
 
 case "$cmd" in
@@ -45,9 +50,12 @@ Available labs:
 
   Primary track - kernel programming on a virtual Wormhole (library-direct):
     00     - orientation: verify the env (tt-metal should already be built on FULL)
-    01     - single-core matrix multiplication
-    02     - multi-core matrix multiplication (SPMD across the Tensix grid)
-    03     - multicast for data reuse in multi-core matmul
+    01     - elementwise add (TT-Metalium intro — reader/compute/writer, CBs)
+    02     - multicast intro on the NoC (semaphores, sender/receivers)
+    03     - TTNN high-level add (optional — no custom kernels)
+    04     - single-core matrix multiplication
+    05     - multi-core matrix multiplication (SPMD across the Tensix grid)
+    06     - multicast for data reuse in multi-core matmul
 
   Advanced track - QEMU + tt-kmd bring-up (optional):
     10     - boot a Linux guest under QEMU full-system (no device yet)
@@ -64,7 +72,8 @@ Available labs:
     stop   - power off the running guest (advanced track)
     shell  - drop to a plain bash shell
 
-New here? Do 00 -> 01 -> 02 -> 03. The advanced track (10-16) is optional.
+New here? Do 00 -> 01 -> 02 -> (03 optional) -> 04 -> 05 -> 06.
+Advanced track (10-16) is optional.
 EOF
     ;;
 
@@ -73,28 +82,48 @@ EOF
     exec bash check.sh
     ;;
 
-  01|01-matmul-single-core)
-    prepare_workdir 01-matmul-single-core
-    banner "Lab 01 - single-core matrix multiplication" 01-matmul-single-core
-    if [[ -d "${TT_METAL_HOME:-/opt/tt-metal}/build/programming_examples" ]]; then
-      echo "tt-metal is ready — run:"
-    else
-      echo "Light image: run 'tt-sim setup' once, then:"
-    fi
+  01|01-elementwise-binary)
+    prepare_workdir 01-elementwise-binary
+    banner "Lab 01 - elementwise add (Metalium intro)" 01-elementwise-binary
+    metal_ready_hint
+    echo "  tt-sim run example_lab_eltwise_binary"
+    exec bash
+    ;;
+
+  02|02-multicast-intro)
+    prepare_workdir 02-multicast-intro
+    banner "Lab 02 - multicast intro" 02-multicast-intro
+    metal_ready_hint
+    echo "  tt-sim run example_lab_multicast"
+    exec bash
+    ;;
+
+  03|03-ttnn-add)
+    prepare_workdir 03-ttnn-add
+    banner "Lab 03 - TTNN high-level add (optional)" 03-ttnn-add
+    metal_ready_hint
+    echo "  tt-sim run example_add"
+    exec bash
+    ;;
+
+  04|04-matmul-single-core)
+    prepare_workdir 04-matmul-single-core
+    banner "Lab 04 - single-core matrix multiplication" 04-matmul-single-core
+    metal_ready_hint
     echo "  tt-sim run metal_example_matmul_single_core"
     exec bash
     ;;
 
-  02|02-matmul-multi-core)
-    prepare_workdir 02-matmul-multi-core
-    banner "Lab 02 - multi-core matrix multiplication" 02-matmul-multi-core
+  05|05-matmul-multi-core)
+    prepare_workdir 05-matmul-multi-core
+    banner "Lab 05 - multi-core matrix multiplication" 05-matmul-multi-core
     echo "Run:  tt-sim run metal_example_matmul_multi_core"
     exec bash
     ;;
 
-  03|03-matmul-multicast)
-    prepare_workdir 03-matmul-multicast
-    banner "Lab 03 - multicast for data reuse" 03-matmul-multicast
+  06|06-matmul-multicast)
+    prepare_workdir 06-matmul-multicast
+    banner "Lab 06 - multicast for data reuse in matmul" 06-matmul-multicast
     echo "Run:  tt-sim run metal_example_matmul_multicore_reuse_mcast"
     exec bash
     ;;
@@ -158,16 +187,16 @@ EOF
     ;;
 
   -h|--help|help)
-    echo "usage: ttlab {list|00|01|02|03|10|11|12|13|14|15|16|setup|ssh|stop|shell}"
+    echo "usage: ttlab {list|00|01|02|03|04|05|06|10|11|12|13|14|15|16|setup|ssh|stop|shell}"
     echo
     echo "ttlab NN mirrors /labs/<NN-...>/ into $WORK_ROOT/<NN-...>/ and runs it."
-    echo "Primary track (01-03): kernel programming via 'tt-sim' (library-direct)."
+    echo "Primary track (00-06): intro examples + matmul via 'tt-sim' (library-direct)."
     echo "Advanced track (10-16): QEMU + tt-kmd bring-up via 'tt-guest'."
     ;;
 
   *)
     echo "ttlab: unknown command '$cmd'" >&2
-    echo "usage: ttlab {list|00|01|02|03|10|11|12|13|14|15|16|setup|ssh|stop|shell}" >&2
+    echo "usage: ttlab {list|00|01|02|03|04|05|06|10|11|12|13|14|15|16|setup|ssh|stop|shell}" >&2
     exit 1
     ;;
 esac

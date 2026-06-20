@@ -7,7 +7,7 @@
 #   3. tt-metal is built (FULL image: already at /opt/tt-metal; light: tt-sim setup).
 #
 # Advanced track (QEMU + tt-kmd bring-up, labs 10-16) is checked too, but
-# only reported informationally - you don't need it for labs 01-03.
+# only reported informationally - you don't need it for labs 01-06.
 
 set -uo pipefail
 
@@ -103,7 +103,7 @@ bh_lib="$TTSIM_DIR/libttsim_bh${sfx}.so"
 echo
 if [[ "$FAILED" == 0 ]]; then
   if [[ "$METAL_BUILT" == 1 ]]; then
-    printf '\033[1;32mPrimary-track checks passed.\033[0m tt-metal is ready — next: `ttlab 01`.\n'
+    printf '\033[1;32mPrimary-track checks passed.\033[0m tt-metal is ready — next: `ttlab 01` (elementwise intro).\n'
   else
     printf '\033[1;32mEnvironment OK (simulator present).\033[0m Next: `tt-sim setup`, then `ttlab 01`.\n'
   fi

@@ -85,7 +85,9 @@ resolve_home() {
 
 is_built() {
   local home="$1"
-  [[ -d "$home/build" ]] && compgen -G "$home/build/programming_examples/*" >/dev/null 2>&1
+  [[ -d "$home/build" ]] || return 1
+  compgen -G "$home/build/programming_examples/*" >/dev/null 2>&1 && return 0
+  compgen -G "$home/build/ttnn/examples/*" >/dev/null 2>&1
 }
 
 # --- wire up the library-direct soc descriptor -----------------------------
@@ -200,8 +202,10 @@ cmd_run() {
     : # absolute/relative path given
   elif [[ -x "$home/build/programming_examples/$target" ]]; then
     target="$home/build/programming_examples/$target"
+  elif [[ -x "$home/build/ttnn/examples/$target" ]]; then
+    target="$home/build/ttnn/examples/$target"
   else
-    die "example '$target' not found (look under $home/build/programming_examples/)"
+    die "example '$target' not found (look under $home/build/programming_examples/ or $home/build/ttnn/examples/)"
   fi
 
   echo "==> Running $target under library-direct ttsim (Wormhole)"
