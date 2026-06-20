@@ -28,8 +28,10 @@ these patterns when you see them again in [`ttlab 06`](../06-matmul-multicast/RE
 tt-sim run example_lab_multicast
 ```
 
-Look for log lines such as `[PASS] All N receivers received correct tensor data`
-and **`Test Passed`**.
+`tt-sim run` prints a **`==> Result`** summary (filters bring-up noise). Look for
+multicast shape, per-receiver **`[PASS]`** lines, and **`Test Passed`**.
+
+On an older FULL image: `tt-sim patch-output` once, then re-run.
 
 ```bash
 ls $TT_METAL_HOME/build/ttnn/examples/ | grep -i multicast
@@ -45,6 +47,35 @@ tt-sim run example_lab_multicast
 
 </details>
 
+## Understanding the output
+
+```
+Multicast example: 640x640 tensor (400 tiles) to 3 receivers
+Launching multicast of 400 tiles to 3 receivers
+Multicast complete
+Output vector size: 1228800 elements
+=========== MULTICAST TENSOR VERIFICATION ===========
+Sample source tensor (first 4 elements):
+  input[0] = 0.374540
+  ...
+  receiver 1 first 4 elements:
+    [0] = 0.374540
+  ...
+[PASS] Receiver 1 received correct tensor (400 tiles)
+[PASS] Receiver 2 received correct tensor (400 tiles)
+[PASS] Receiver 3 received correct tensor (400 tiles)
+[PASS] All 3 receivers received correct tensor data
+Test Passed
+```
+
+| Line | What it means |
+|---|---|
+| **640x640 … 3 receivers** | Sender core `(0,0)` broadcasts one tensor to receivers `(1,0)`, `(2,0)`, `(3,0)`. |
+| **1228800 elements** | Three full copies: **409,600 × 3** bfloat16 values read back from DRAM. |
+| **Sample source / receiver** | First four elements of the source tensor and each receiver's copy (should match). |
+| **`[PASS] Receiver N`** | That core's copy matches the source bit-for-bit. |
+| **Test Passed** | All receivers got the correct multicast data. |
+
 ## Read the source
 
 ```bash
@@ -57,8 +88,7 @@ Focus on:
 2. Sender reader — DRAM read + multicast write + semaphore signal.
 3. Receiver kernels — semaphore wait + consume tile from L1.
 
-API pointers: [`MATMUL_GUIDE.md` §9.7](../MATMUL_GUIDE.md#97-kernel--multicast--semaphores-lab-03-only)
-(multicast APIs; section number kept for anchor — applies to this lab too).
+API pointers: [`MATMUL_GUIDE.md` §9.7](../MATMUL_GUIDE.md#97-kernel--multicast--semaphores-labs-02--06)
 
 ## Exercise
 

@@ -313,7 +313,7 @@ Status:             tt-sim status
 Run intro examples: tt-sim run example_lab_eltwise_binary
                     tt-sim run example_lab_multicast
 Run matmul:         tt-sim run metal_example_matmul_single_core
-Timing in output:   tt-sim patch-timing   # once, if Timing line missing (older FULL image)
+Sample results:     tt-sim patch-output    # once, if labs 01–06 lack sample / Test Passed lines
 Other matmuls:      tt-sim run metal_example_matmul_multi_core
                     tt-sim run metal_example_matmul_multicore_reuse_mcast
 List examples:      ls $TT_METAL_HOME/build/ttnn/examples/

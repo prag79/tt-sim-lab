@@ -19,8 +19,31 @@ Skip this lab if you are eager to start matmul; it does not teach custom kernels
 tt-sim run example_add
 ```
 
-This program creates a `32×64` bfloat16 tensor, adds a scalar on device, and
-exits. There is no `Test Passed` line — it is a minimal API smoke test.
+This program creates a **`32×64`** bfloat16 tensor of zeros, adds **`3.0`** on
+device, reads the result back, and prints sample values plus **`Test Passed`**.
+
+On an older FULL image: `tt-sim patch-output` once, then re-run.
+
+## Understanding the output
+
+```
+TTNN add: zeros(32 x 64) + 3.0 on device
+Output tensor: 2048 elements (expected all 3.0)
+  out[0] = 3.000000
+  out[1] = 3.000000
+  out[2] = 3.000000
+  out[3] = 3.000000
+Test Passed
+```
+
+| Line | What it means |
+|---|---|
+| **zeros(32 x 64) + 3.0** | High-level TTNN: create tensor on device, add scalar in one expression. |
+| **2048 elements** | **32 × 64** bfloat16 values after readback from simulated device. |
+| **out[i] = 3.0** | Every element should be **0 + 3**; sample shows first four. |
+| **Test Passed** | All elements within tolerance of 3.0 (smoke test for the TTNN API path). |
+
+Upstream `add.cpp` prints nothing; the lab patch adds this readback for teaching.
 
 ## Read the source
 

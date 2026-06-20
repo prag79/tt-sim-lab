@@ -145,7 +145,7 @@ foundation (eltwise before matmul). Matmul labs **04–06** mirror the upstream
 [matmul labs](https://github.com/tenstorrent/tt-metal/tree/main/docs/source/tt-metalium/tt_metal/labs/matmul).
 
 See [`labs/MATMUL_GUIDE.md`](labs/MATMUL_GUIDE.md) for matmul source walkthrough
-(labs 04–06), test output (`409600`, PCC, timing), and [§9 API glossary](labs/MATMUL_GUIDE.md#9-api-glossary-source--docs).
+(labs 04–06), test output (`409600`, PCC, sample values), and [§9 API glossary](labs/MATMUL_GUIDE.md#9-api-glossary-source--docs).
 On the **FULL** image, tt-metal is prebuilt — students run examples immediately.
 On the **light** image, `tt-sim setup` is the one heavy step (build once).
 Wormhole needs [tt-metal PR #46871](https://github.com/tenstorrent/tt-metal/pull/46871),

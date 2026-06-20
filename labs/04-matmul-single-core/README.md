@@ -22,7 +22,7 @@ RISC-V/compute engines with results **bit-exact to silicon**.
 > "run it on the virtual chip" recipe plus the concepts to focus on.
 >
 > **Deep dive:** [`MATMUL_GUIDE.md`](../MATMUL_GUIDE.md) — source walkthrough,
-> test output (`409600`, PCC, timing), and [§9 API glossary](../MATMUL_GUIDE.md#9-api-glossary-source--docs).
+> test output (`409600`, PCC, sample **C[i]**), and [§9 API glossary](../MATMUL_GUIDE.md#9-api-glossary-source--docs).
 
 ## Concepts this lab teaches
 
@@ -136,14 +136,18 @@ cd $TT_METAL_HOME
 tt-sim run metal_example_matmul_single_core
 ```
 
-Look for **Test Passed** and a PCC line near 1.0.
+Look for **Test Passed** and a PCC line near 1.0. On an older FULL image
+without sample lines: `tt-sim patch-output`.
 
 ## Understanding the output
 
 A successful run looks like this:
 
 ```
-Timing — CPU golden: 842.315 ms | Metalium device: 45123.008 ms | device/CPU 53.57x
+Matrix multiply C = A x B: 640 x 640 * 640 x 640 = 640 x 640
+Sample C[i] (device vs CPU golden):
+  C[0] device 159.875000  golden 159.875000
+  C[1] device ...
 Output vector of size 409600
 Metalium vs Golden -- PCC = 0.981743
 Test Passed
@@ -151,23 +155,12 @@ Test Passed
 
 | Line | What it means |
 |---|---|
-| **Timing — CPU golden** | Wall-clock time for the reference matmul on the **host CPU** (plain nested loops in fp32, then cast to bfloat16). |
-| **Metalium device** | Wall-clock time for the **device path**: upload A/B to simulated DRAM, run reader/compute/writer kernels on the virtual Wormhole, read C back. |
-| **device/CPU …x** | How many times **slower** (or faster) the device path was vs CPU golden on *this* host. Under **ttsim** you usually see a large number (often 20–100×): the virtual chip is **software-emulated**, so it is not representative of real silicon speed. On real hardware the ratio is typically inverted (Metalium much faster). |
+| **Matrix multiply / Sample C[i]** | Problem shape and first few output elements vs CPU golden (full matrix is 409,600 values — not all printed). |
 | **Output vector of size 409600** | Result matrix C is **640 × 640 = 409,600** bfloat16 values (row-major after untilize). |
 | **PCC = 0.981743** | **Pearson correlation** between device output and CPU golden. Pass threshold is **> 0.97**. ~0.98 is strong agreement; not exactly 1.0 because of bfloat16 rounding and tiled accumulation order. |
 | **Test Passed** | Program finished cleanly and PCC exceeded the threshold. |
 
-The timing lines are injected by the lab environment (`tt-sim` applies a small
-patch to the upstream examples at build time). If you do not see them on an
-older FULL image, run once:
-
-```bash
-tt-sim patch-timing
-tt-sim run metal_example_matmul_single_core
-```
-
-Fresh **light**-image builds via `tt-sim setup` include timing automatically.
+On an older FULL image without sample lines, run once: `tt-sim patch-output`.
 
 ## Exercise
 

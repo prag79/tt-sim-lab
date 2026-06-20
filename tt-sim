@@ -15,8 +15,8 @@
 #   tt-sim build            (re)build tt-metal
 #   tt-sim env              print the env exports for the library-direct flow
 #   tt-sim run <example>    run a tt-metal programming example under ttsim
-#   tt-sim patch-timing     inject CPU vs device timing prints into matmul
-#                           examples and rebuild programming examples
+#   tt-sim patch-output      inject sample result lines into labs 01–06 examples
+#   tt-sim patch-eltwise     (alias for patch-output)
 #   tt-sim shell            drop into a shell with the env already exported
 #   tt-sim status           show where tt-metal lives and whether it is built
 #
@@ -48,24 +48,35 @@ WH_LIB="$TTSIM_DIR/libttsim_wh${LIB_SUFFIX}.so"
 
 die() { echo "tt-sim: $*" >&2; exit 1; }
 
-# --- matmul timing patch (CPU vs Metalium wall clock in example output) ----
-
 resolve_patch_script() {
+  local name="$1"
   local script
   for script in \
-    "/usr/local/share/tt-sim-lab/patch-matmul-timing.py" \
-    "$(dirname "$0")/scripts/patch-matmul-timing.py"; do
+    "/usr/local/share/tt-sim-lab/$name" \
+    "$(dirname "$0")/scripts/$name"; do
     [[ -f "$script" ]] && { echo "$script"; return 0; }
   done
   return 1
 }
 
-apply_matmul_timing_patches() {
+apply_lab_output_patches() {
   local home="$1"
   local script
-  script="$(resolve_patch_script)" || \
-    die "patch-matmul-timing.py not found (rebuild the lab image or run from the git repo)"
+  script="$(resolve_patch_script patch-lab-output.py)" || \
+    die "patch-lab-output.py not found (rebuild the lab image or run from the git repo)"
   python3 "$script" "$home"
+}
+
+rebuild_lab_output_examples() {
+  local home="$1"
+  echo "==> Rebuilding lab examples with sample output..."
+  ( cd "$home" && TT_METAL_HOME="$home" cmake --build build --target \
+      example_lab_eltwise_binary \
+      example_lab_multicast \
+      example_add \
+      metal_example_matmul_single_core \
+      metal_example_matmul_multi_core \
+      metal_example_matmul_multicore_reuse_mcast )
 }
 
 # --- locate the tt-metal tree ----------------------------------------------
@@ -119,7 +130,7 @@ wire_soc_descriptor() {
 
 cmd_build() {
   local home="$1"
-  apply_matmul_timing_patches "$home" || true
+  apply_lab_output_patches "$home" || true
   # tt-metal ships its own dependency installer; run it best-effort so a fresh
   # tree builds on the minimal lab image (student has NOPASSWD sudo).
   if [[ -x "$home/install_dependencies.sh" ]]; then
@@ -163,13 +174,16 @@ cmd_setup() {
   cmd_env "$home"
 }
 
-cmd_patch_timing() {
+cmd_patch_output() {
   local home; home="$(resolve_home)" || die "no tt-metal tree; run 'tt-sim setup' first"
-  echo "==> Patching matmul examples to print CPU vs Metalium timing..."
-  apply_matmul_timing_patches "$home"
-  echo "==> Rebuilding programming examples..."
-  ( cd "$home" && TT_METAL_HOME="$home" ./build_metal.sh --build-programming-examples )
-  echo "==> Done. Re-run e.g.: tt-sim run metal_example_matmul_single_core"
+  echo "==> Patching lab examples to print sample results (labs 01–06)..."
+  apply_lab_output_patches "$home"
+  rebuild_lab_output_examples "$home"
+  echo "==> Done. Re-run e.g.: tt-sim run example_lab_eltwise_binary"
+}
+
+cmd_patch_eltwise() {
+  cmd_patch_output "$@"
 }
 
 cmd_env() {
@@ -181,7 +195,19 @@ export TT_METAL_RUNTIME_ROOT="$home"
 export TT_METAL_SIMULATOR="$WH_LIB"
 export TT_METAL_SLOW_DISPATCH_MODE=1
 export TT_METAL_DISABLE_SFPLOADMACRO=1
+export TT_LOGGER_TYPES="${TT_LOGGER_TYPES:-Always}"
 EOF
+}
+
+summarize_run_log() {
+  local log="$1"
+  if grep -qE '\| *Always \|' "$log" 2>/dev/null; then
+    grep -E '\| *Always \|' "$log" \
+      | sed -E 's/^.*\| *Always \| //' \
+      | sed -E 's/ \([^)]+\)$//'
+  fi
+  grep -E '^(Output vector of size|Metalium vs Golden|Matrix multiply|Sample C\[|Sample results|Matrix shape|TTNN add|Output tensor:|Multicast example|Launching multicast|Multicast complete|Output vector size:|\[PASS\]|\[FAIL\]|Test Passed|Test Failed)' "$log" 2>/dev/null || true
+  grep -E '^(  \[[0-9]+\]|    \[[0-9]+\]|  C\[[0-9]+\]|  out\[[0-9]+\])' "$log" 2>/dev/null || true
 }
 
 cmd_run() {
@@ -208,8 +234,21 @@ cmd_run() {
     die "example '$target' not found (look under $home/build/programming_examples/ or $home/build/ttnn/examples/)"
   fi
 
+  # Default: show program result lines (LogAlways) without Metal/UMD bring-up
+  # noise. Set TT_LOGGER_TYPES=All before running to see full logs.
+  export TT_LOGGER_TYPES="${TT_LOGGER_TYPES:-Always}"
+
   echo "==> Running $target under library-direct ttsim (Wormhole)"
-  exec "$target" "$@"
+  local log rc=0
+  log="$(mktemp "${TMPDIR:-/tmp}/tt-sim-run.XXXXXX")"
+  trap 'rm -f "$log"' RETURN
+  "$target" "$@" 2>&1 | tee "$log" || rc=$?
+
+  echo ""
+  echo "==> Result"
+  summarize_run_log "$log"
+
+  return "$rc"
 }
 
 cmd_shell() {
@@ -221,6 +260,7 @@ cmd_shell() {
   TT_METAL_SIMULATOR="$WH_LIB" \
   TT_METAL_SLOW_DISPATCH_MODE=1 \
   TT_METAL_DISABLE_SFPLOADMACRO=1 \
+  TT_LOGGER_TYPES="${TT_LOGGER_TYPES:-Always}" \
     exec bash
 }
 
@@ -243,7 +283,7 @@ cmd="${1:-status}"; shift || true
 case "$cmd" in
   setup)        cmd_setup "$@" ;;
   build)        home="$(resolve_home)" || die "no tt-metal tree; run 'tt-sim setup' first"; cmd_build "$home" ;;
-  patch-timing) cmd_patch_timing "$@" ;;
+  patch-output|patch-eltwise) cmd_patch_output "$@" ;;
   env)          cmd_env "$@" ;;
   run)          cmd_run "$@" ;;
   shell)        cmd_shell "$@" ;;
@@ -251,5 +291,5 @@ case "$cmd" in
   -h|--help|help)
     sed -n '2,29p' "$0" | sed 's/^# \{0,1\}//'
     ;;
-  *) die "unknown subcommand '$cmd' (try: setup|build|patch-timing|env|run|shell|status)" ;;
+  *) die "unknown subcommand '$cmd' (try: setup|build|patch-output|env|run|shell|status)" ;;
 esac

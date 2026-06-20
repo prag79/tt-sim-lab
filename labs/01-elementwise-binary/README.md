@@ -34,7 +34,9 @@ On the **FULL** image:
 tt-sim run example_lab_eltwise_binary
 ```
 
-Expect **`Test Passed`** and an output size line from the host log.
+Expect **`Test Passed`** and an output size line. `tt-sim run` filters out
+bring-up noise and prints a **`==> Result`** block at the end; set
+`TT_LOGGER_TYPES=All` if you want the full Metal/UMD log stream.
 
 List built ttnn examples if the name differs on your tree:
 
@@ -51,6 +53,42 @@ tt-sim run example_lab_eltwise_binary
 ```
 
 </details>
+
+## Understanding the output
+
+With the default log filter, a successful run looks like:
+
+```
+==> Result
+Matrix shape: 640 x 640 (elementwise a + b)
+Sample results (a[i] + b[i] = device; golden = CPU reference):
+  [0] 0.374540 + 0.950714 = 1.325254  (golden 1.325254)
+  [1] 0.731994 + 0.598659 = 1.330653  (golden 1.330653)
+  [2] 0.156019 + 0.155994 = 0.312013  (golden 0.312013)
+  [3] 0.058084 + 0.866176 = 0.924260  (golden 0.924260)
+Output vector of size 409600
+Test Passed
+```
+
+(Exact floats depend on the fixed RNG seed in the host program; yours will match
+this pattern if unmodified.)
+
+| Line | What it means |
+|---|---|
+| **Matrix shape: 640 x 640** | Two random **640×640** bfloat16 matrices are added element-wise. |
+| **Sample results …** | First four elements: **a[i] + b[i]** on device vs CPU golden. Values should match within bfloat16 rounding. |
+| **Output vector of size 409600** | Full result flattened: **640 × 640 = 409,600** values (not all printed — that would flood the terminal). |
+| **Test Passed** | All 409,600 elements matched the CPU reference within tolerance (4% relative error per element). |
+
+On an older FULL image without the sample patch, run once:
+
+```bash
+tt-sim patch-output
+tt-sim run example_lab_eltwise_binary
+```
+
+If you see **`Test Failed`** or **`Mismatch at index`**, the device result diverged
+from the CPU reference — check kernel edits or dimensions (M/N must be multiples of 32).
 
 ## Read the source
 

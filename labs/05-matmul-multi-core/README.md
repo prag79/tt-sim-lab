@@ -42,9 +42,7 @@ a CPU golden reference. Expect it to be **slow** (the whole grid is
 simulated in software), but **correct**.
 
 See [Lab 04 — Understanding the output](../04-matmul-single-core/README.md#understanding-the-output)
-for how to read the timing line, `409600`, PCC, and **Test Passed**. The
-device/CPU ratio is usually **much larger** here than Lab 04 because more
-cores are simulated.
+for how to read sample **C[i]**, `409600`, PCC, and **Test Passed**.
 
 > Exact binary names can drift between tt-metal versions. List what your
 > build produced with:
