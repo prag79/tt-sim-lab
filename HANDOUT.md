@@ -96,20 +96,15 @@ Visit <https://github.com/prag79/tt-sim-lab>. Sign in if prompted.
 
 GitHub will:
 
-1. Show a **"Create codespace"** screen. The default (light) config requests
-   a **4-core / 8 GB** machine. **For the kernel labs you'll build tt-metal**,
-   which is heavy — pick a **bigger machine type** (8-core+ for more RAM and
-   disk) via **⋯ → New with options…**. See the README's "Bigger Codespace
-   machines" section. Then click **Create codespace**.
+1. Show a **"Create codespace"** screen. **Recommended:** use **⋯ → New with
+   options…**, pick **"tt-sim Lab (FULL — tt-metal prebuilt)"**, then choose a
+   **4-core** machine (fits personal accounts). The FULL image has tt-metal
+   already built — students skip `tt-sim setup`. The badge alone opens the
+   **light** image (no prebuilt tt-metal); only use that if you intend to build
+   tt-metal yourself.
 2. Boot a small Linux VM (~30 s).
-3. Pull the prebuilt image `ghcr.io/prag79/tt-sim-lab:latest` (~1 min,
-   first launch only — cached afterwards).
+3. Pull the prebuilt image from GHCR (`:full` or `:latest`, ~1 min first launch).
 4. Open VS Code in your browser, attached to the container.
-
-> **Zero-setup option:** if your instructor published the **`:full`** image
-> (tt-metal prebuilt), choose the **"tt-sim Lab (FULL)"** configuration on the
-> create screen instead — it skips `tt-sim setup` entirely. It needs a bigger
-> machine (8-core / 128 GB disk). See the README's "Two images" section.
 
 ### 2.3 Verify the environment
 
@@ -166,13 +161,13 @@ Each lab has its own detailed `README.md`. Do the **primary track in order**
 
 | Lab | Time | What you'll do | Detailed README |
 |---|---|---|---|
-| **00** | ~5–10 min | Verify the env; provision tt-metal with `tt-sim setup`. | [`labs/00-orientation/README.md`](labs/00-orientation/README.md) |
+| **00** | ~5–10 min | Verify the env (`tt-sim status` should show tt-metal **built** on FULL). | [`labs/00-orientation/README.md`](labs/00-orientation/README.md) |
 | **01** | ~45–60 min | Single-core matmul: tiles, reader/compute/writer kernels, circular buffers, the matmul FPU API. | [`labs/01-matmul-single-core/README.md`](labs/01-matmul-single-core/README.md) |
 | **02** | ~45–60 min | Multi-core matmul: split work across the Tensix grid (SPMD), per-core runtime args. | [`labs/02-matmul-multi-core/README.md`](labs/02-matmul-multi-core/README.md) |
 | **03** | ~60–90 min | Multicast: reuse data over the NoC to cut redundant DRAM reads. | [`labs/03-matmul-multicast/README.md`](labs/03-matmul-multicast/README.md) |
 
-Primary-track rhythm: `tt-sim setup` once, then `tt-sim run <example>` to
-execute kernels. No guest, no SSH.
+Primary-track rhythm on the **FULL** image: `tt-sim run <example>` — no setup,
+no guest, no SSH. On the **light** image only: `tt-sim setup` once first.
 
 ### Advanced track — QEMU + tt-kmd bring-up (optional)
 
@@ -248,7 +243,7 @@ git push -u origin my-experiments
 | Symptom | Likely cause | Fix |
 |---|---|---|
 | `ttlab 00` red `[FAIL]` for `libttsim_wh.so` | Release download failed at build | `wget` it from the [ttsim releases](https://github.com/tenstorrent/ttsim/releases) into `/opt/ttsim`. |
-| `tt-sim run` says tt-metal not built | Not provisioned yet | Run `tt-sim setup` (first build is slow). |
+| `tt-sim run` says tt-metal not built | Using the **light** image without setup | Run `tt-sim setup`, or recreate with the **FULL** config |
 | `tt-sim setup` build is huge / OOM | tt-metal build is heavy | Use a larger machine type for the first build; result persists in `~/work/tt-metal`. |
 | matmul example name not found | Names vary by tt-metal version | `ls $TT_METAL_HOME/build/programming_examples/ \| grep matmul`. |
 | (advanced) `ttlab 00` no `ttsim` device | Image built from upstream QEMU | Rebuild from the `stable-11.0-ttsim` fork branch. |
@@ -299,7 +294,8 @@ List labs:          ttlab list                          (banner runs this on att
 Self-test:          ttlab 00                             env check, no boot
 
 -- Primary track: kernel programming (library-direct ttsim) --
-Provision tt-metal: tt-sim setup                         (one-time; the heavy build)
+Codespace config:   FULL (recommended) — tt-metal prebuilt, no setup
+Light image only:   tt-sim setup                         (one-time heavy build)
 Status:             tt-sim status
 Run a kernel:       tt-sim run metal_example_matmul_single_core
 Other matmuls:      tt-sim run metal_example_matmul_multi_core

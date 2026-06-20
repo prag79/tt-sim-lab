@@ -8,8 +8,10 @@ also covers the full bring-up story (boot Linux, load the real driver, see
 
 [![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)](https://codespaces.new/prag79/tt-sim-lab?quickstart=1)
 
-The first launch pulls a prebuilt image from GHCR (~1 min). Re-opening
-the same Codespace afterwards is instant.
+The badge opens the **light** image by default. For classes, use **Code → ⋯ →
+New with options…** and select **"tt-sim Lab (FULL — tt-metal prebuilt)"** so
+students skip `tt-sim setup`. The first launch pulls a prebuilt image from GHCR
+(~1 min). Re-opening the same Codespace afterwards is instant.
 
 > **Students:** start with [`HANDOUT.md`](HANDOUT.md) — a one-document
 > walkthrough of how to launch the Codespace from a personal GitHub
@@ -73,17 +75,40 @@ advanced track if you care about the driver/PCIe layer itself.
 
 ## Quick start (in the Codespace terminal)
 
+**Recommended for students:** create the Codespace with the **"tt-sim Lab (FULL —
+tt-metal prebuilt)"** devcontainer (Code → **⋯ → New with options…** → pick that
+configuration). tt-metal is already built at `/opt/tt-metal` — **no
+`tt-sim setup`**.
+
 ```bash
 ttlab list              # see available exercises
-ttlab 00                # orientation: verify env + provision tt-metal
-tt-sim setup            # one-time: clone/build tt-metal, wire up the virtual chip
+ttlab 00                # orientation: verify env (tt-metal should already be built)
 ttlab 01                # single-core matrix multiplication
-ttlab 02                # multi-core matrix multiplication (SPMD across the grid)
-ttlab 03                # multicast for data reuse in multi-core matmul
-
-# Run a lab's program on the virtual Wormhole:
 tt-sim run metal_example_matmul_single_core
+ttlab 02                # multi-core matrix multiplication (SPMD across the grid)
+tt-sim run metal_example_matmul_multi_core
+ttlab 03                # multicast for data reuse in multi-core matmul
+tt-sim run metal_example_matmul_multicore_reuse_mcast
+```
 
+Primary-track rhythm on the **FULL** image: `ttlab NN` for the lab README, then
+`tt-sim run <example>` — no guest, no SSH, no build step.
+
+<details>
+<summary>Light image (`:latest`) — only if you did not use the FULL config</summary>
+
+The default badge opens the **light** image, which does **not** include a
+prebuilt tt-metal tree. You must build once:
+
+```bash
+ttlab 00
+tt-sim setup            # one-time: clone/build tt-metal (slow; needs a bigger machine)
+tt-sim run metal_example_matmul_single_core
+```
+
+</details>
+
+```bash
 # --- optional advanced (QEMU + driver) track ---
 ttlab 10                # boot a Linux guest (no device yet)
 ttlab 14                # run tt-metal through the full QEMU + driver path
@@ -91,10 +116,9 @@ ttlab ssh               # ssh into the running guest (second terminal)
 ttlab stop              # power off the guest
 ```
 
-Primary-track rhythm: `tt-sim setup` once, then `tt-sim run <example>` to
-execute kernels — no guest, no SSH. Advanced-track rhythm: run `ttlab 1N`
-in one terminal (it boots the guest on the serial console), then open a
-**second** terminal and `ttlab ssh` in to work interactively.
+Advanced-track rhythm: run `ttlab 1N` in one terminal (it boots the guest on
+the serial console), then open a **second** terminal and `ttlab ssh` in to
+work interactively.
 
 ## Exercises
 
@@ -102,16 +126,17 @@ in one terminal (it boots the guest on the serial console), then open a
 
 | Lab | What it teaches | Source |
 |---|---|---|
-| `ttlab 00` | Orientation: verify the env; provision tt-metal with `tt-sim setup` | [`labs/00-orientation/`](labs/00-orientation/) |
+| `ttlab 00` | Orientation: verify the env (`tt-sim status` should show tt-metal **built**) | [`labs/00-orientation/`](labs/00-orientation/) |
 | `ttlab 01` | Single-core matmul: tiles, reader/compute/writer kernels, circular buffers, the matmul FPU API | [`labs/01-matmul-single-core/`](labs/01-matmul-single-core/) |
 | `ttlab 02` | Multi-core matmul: SPMD work-splitting across the Tensix grid, per-core runtime args | [`labs/02-matmul-multi-core/`](labs/02-matmul-multi-core/) |
 | `ttlab 03` | Multicast: NoC data reuse to kill redundant DRAM reads in multi-core matmul | [`labs/03-matmul-multicast/`](labs/03-matmul-multicast/) |
 
 These mirror the upstream
 [TT-Metalium matmul labs](https://github.com/tenstorrent/tt-metal/tree/main/docs/source/tt-metalium/tt_metal/labs/matmul).
-Building tt-metal is the one heavy step; running the kernels afterward is
-light. Wormhole needs [tt-metal PR #46871](https://github.com/tenstorrent/tt-metal/pull/46871),
-which `tt-sim` pulls in.
+On the **FULL** image, tt-metal is prebuilt — students run examples immediately.
+On the **light** image, `tt-sim setup` is the one heavy step (build once).
+Wormhole needs [tt-metal PR #46871](https://github.com/tenstorrent/tt-metal/pull/46871),
+which the FULL image and `tt-sim` both include.
 
 ### Advanced track — QEMU + tt-kmd bring-up (optional)
 
@@ -176,7 +201,7 @@ You (this repo)  →  GitHub Actions  →  GHCR  →  Codespaces VM  →  Your b
 | First-run setup | `tt-sim setup` builds tt-metal (slow, once) | none — already built |
 | Image size | small | large (multi-GB) |
 | Devcontainer | `.devcontainer/devcontainer.json` | `.devcontainer/full/devcontainer.json` |
-| Good for | free Codespaces | "zero-setup" classes on bigger machines |
+| Good for | DIY / development (build tt-metal yourself) | **classes — zero-setup** (recommended) |
 
 ### Building the full image
 
@@ -220,9 +245,8 @@ To get more space:
 
 1. **Pick a larger machine type** on the "Create codespace" screen
    (use **⋯ → New with options…** from the repo's Code dropdown), or raise
-   `hostRequirements` so Codespaces won't offer anything smaller. The light
-   config asks for 4-core/8 GB/64 GB; the full config asks for
-   8-core/16 GB/128 GB.
+   `hostRequirements` so Codespaces won't offer anything smaller. Both configs
+   currently ask for 4-core / 8 GB / 32 GB (fits personal accounts).
 2. **Enable the bigger types if they're greyed out.** Larger machine types
    must be permitted by the account/org: GitHub → Settings → Codespaces →
    *Machine types* (org), and they require a billing/spending limit > $0.
@@ -235,7 +259,7 @@ To get more space:
 | Meter | Free quota / month | Notes |
 |---|---|---|
 | Compute | 120 core-hours | This devcontainer requests a 4-core machine → ~30 wall-clock hours |
-| Storage | 15 GB-month | The image + a `tt-sim`-built tt-metal tree (`~/work/tt-metal`) is sizable; **delete** the Codespace between sessions to avoid storage overage |
+| Storage | 15 GB-month | The **FULL** image is large; **delete** the Codespace between sessions to avoid storage overage |
 
 Stop a Codespace to pause compute billing; delete it (after pushing your
 work) to stop storage billing. See [`HANDOUT.md`](HANDOUT.md) §6.
@@ -255,7 +279,7 @@ them into a Codespaces teaching lab; all simulator credit is theirs.
 | No `ttsim` in `qemu-system-x86_64 -device help` | Image built from upstream QEMU, not the fork | Rebuild from `tenstorrent/ttsim-qemu` `stable-11.0-ttsim`. |
 | Guest download stalls | Network hiccup on first boot | `tt-guest clean && ttlab 10`. |
 | `ttlab ssh` refused | Guest still booting | Wait for the serial login prompt, retry. |
-| `tt-sim run` says tt-metal not built | tt-metal not provisioned yet | Run `tt-sim setup` (clones + builds; the first build is slow). |
+| `tt-sim run` says tt-metal not built | Using the **light** image without running setup | Run `tt-sim setup`, or recreate the Codespace with the **FULL** config |
 | matmul example name not found | Binary names vary by tt-metal version | `ls $TT_METAL_HOME/build/programming_examples/ \| grep matmul`. |
 | Codespace can't pull `ghcr.io/prag79/tt-sim-lab` | GHCR package is private | Owner: make the package public under GitHub → Packages. |
 | Build fails in Actions | See the failing step | `gh run view <id> --log-failed`. |

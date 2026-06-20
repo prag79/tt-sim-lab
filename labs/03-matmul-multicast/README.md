@@ -31,9 +31,9 @@ multi-core matmul actually fast.
 
 ## Run it
 
+On the **FULL** image, run directly:
+
 ```bash
-tt-sim setup          # light image only, once if not already done (see Lab 01);
-                      # skip on the :full prebuilt image (tt-metal already built)
 tt-sim run metal_example_matmul_multicore_reuse_mcast
 ```
 
@@ -45,6 +45,16 @@ tt-sim run metal_example_matmul_multicore_reuse_mcast
 Functionally correct under ttsim (bit-exact golden check); performance is
 not meaningful under software simulation — you are here to learn the
 *technique*, not to benchmark.
+
+<details>
+<summary>Light image only — run tt-sim setup first (skip on FULL)</summary>
+
+```bash
+tt-sim setup        # once, if not already done (see Lab 01)
+tt-sim run metal_example_matmul_multicore_reuse_mcast
+```
+
+</details>
 
 ## Read the source
 

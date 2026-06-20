@@ -31,54 +31,51 @@ RISC-V/compute engines with results **bit-exact to silicon**.
   `binary_op_init_common`, which is for elementwise ops), and `matmul_tiles`
   multiply-accumulates a tile pair into the destination register.
 
-## One-time setup (build tt-metal against the virtual chip)
-
-> **Using the `:full` prebuilt image?** tt-metal is already compiled at
-> `/opt/tt-metal` — **skip this section entirely** and jump straight to
-> [Run it](#run-it).
-
-The first time you run any kernel lab on the **light (`:latest`) image**,
-provision tt-metal and wire it to the virtual Wormhole. This is idempotent —
-later labs reuse it.
-
-```bash
-tt-sim setup
-```
-
-`tt-sim setup` will:
-
-1. find a tt-metal tree (image-baked at `/opt/tt-metal`, else clone into
-   `~/work/tt-metal`, which survives Codespace stop/start),
-2. build it if needed (the heavy step — see the resource note below),
-3. copy Wormhole's SoC descriptor next to `libttsim_wh.so` so the
-   library-direct flow can enumerate the device.
-
-> **Resource note.** *Building* tt-metal is large (tens of GB, long compile).
-> *Running* it under the simulator afterward is light. On a fresh free
-> Codespace the first build is the slow part, not the lab itself. Not sure
-> which image you have? Run `tt-sim status` — if it shows "built", setup is
-> already done.
-
 ## Run it
 
+If you opened the **FULL** Codespace (`tt-sim Lab (FULL — tt-metal prebuilt)`),
+tt-metal is already at `/opt/tt-metal` — go straight to the run command.
+Confirm with:
+
 ```bash
-# Run the single-core matmul example on the virtual Wormhole:
+tt-sim status       # should say "built" and point at /opt/tt-metal
+```
+
+Run the single-core matmul example on the virtual Wormhole:
+
+```bash
 tt-sim run metal_example_matmul_single_core
 ```
 
 `tt-sim run` exports the library-direct env for you
-(`TT_METAL_SIMULATOR`, `TT_METAL_SLOW_DISPATCH_MODE=1`,
+(`TT_METAL_SIMULATOR`, `TT_METAL_RUNTIME_ROOT`, `TT_METAL_SLOW_DISPATCH_MODE=1`,
 `TT_METAL_DISABLE_SFPLOADMACRO=1`) and launches the binary. A successful run
 computes `C = A × B` on the simulated Tensix core and verifies it against a
-CPU golden reference — you should see a PASS.
+CPU golden reference — you should see **Test Passed**.
 
 Want the raw env to experiment by hand? `tt-sim env` prints the exports, and
 `tt-sim shell` drops you into a shell with them already set.
 
+<details>
+<summary>Light image only — one-time tt-metal build (skip on FULL)</summary>
+
+If you used the default badge / **light (`:latest`)** image, tt-metal is not
+prebuilt. Run this once before any kernel lab (later labs reuse it):
+
+```bash
+tt-sim setup        # clone/build tt-metal, wire up the virtual chip
+tt-sim status       # confirm "built"
+```
+
+*Building* tt-metal is heavy (tens of GB, long compile). *Running* kernels
+afterward is light. On a free Codespace, use a larger machine type for the
+first build; the result persists in `~/work/tt-metal` across stop/start.
+
+</details>
+
 ## Read the source
 
 ```bash
-# (after tt-sim setup) the example + kernels live here:
 ls $TT_METAL_HOME/tt_metal/programming_examples/matmul/matmul_single_core/
 ```
 

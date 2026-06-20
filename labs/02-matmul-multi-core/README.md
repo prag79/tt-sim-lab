@@ -29,15 +29,7 @@ fast.
 
 ## Run it
 
-On the **light (`:latest`) image**, if you have not provisioned tt-metal yet,
-do it once (see Lab 01). On the **`:full` prebuilt image** tt-metal is already
-built — skip this:
-
-```bash
-tt-sim setup
-```
-
-Then run the multi-core example on the virtual Wormhole:
+On the **FULL** image, tt-metal is already built — run the example directly:
 
 ```bash
 tt-sim run metal_example_matmul_multi_core
@@ -50,6 +42,16 @@ simulated in software), but **correct**.
 > Exact binary names can drift between tt-metal versions. List what your
 > build produced with:
 > `ls $TT_METAL_HOME/build/programming_examples/ | grep matmul`
+
+<details>
+<summary>Light image only — run tt-sim setup first (skip on FULL)</summary>
+
+```bash
+tt-sim setup        # once, if not already done (see Lab 01)
+tt-sim run metal_example_matmul_multi_core
+```
+
+</details>
 
 ## Read the source
 

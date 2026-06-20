@@ -47,7 +47,8 @@ echo
 if command -v tt-sim >/dev/null 2>&1; then
   tt-sim status 2>&1 | sed 's/^/  /'
   echo
-  info "If tt-metal is not built yet, run:  tt-sim setup"
+  info "FULL image: tt-metal should already be built at /opt/tt-metal."
+  info "Light image only: if status says NOT built, run:  tt-sim setup"
 fi
 
 # --- Advanced track (optional) --------------------------------------------
@@ -73,7 +74,11 @@ bh_lib="$TTSIM_DIR/libttsim_bh${sfx}.so"
 
 echo
 if [[ "$FAILED" == 0 ]]; then
-  printf '\033[1;32mPrimary-track checks passed.\033[0m Next: run `tt-sim setup`, then `ttlab 01`.\n'
+  if command -v tt-sim >/dev/null 2>&1 && tt-sim status 2>&1 | grep -q 'built'; then
+    printf '\033[1;32mPrimary-track checks passed.\033[0m tt-metal is ready — next: `ttlab 01`.\n'
+  else
+    printf '\033[1;32mPrimary-track checks passed.\033[0m Next: `tt-sim setup` (light image only), then `ttlab 01`.\n'
+  fi
 else
   printf '\033[1;31mSome checks failed.\033[0m See labs/00-orientation/README.md troubleshooting.\n'
   exit 1
